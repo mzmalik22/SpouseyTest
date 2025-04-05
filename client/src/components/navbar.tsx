@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import spouseyLogo from "@/assets/spousey-logo.png";
+import spouseyLogo from "@/assets/spousey-logo-transparent.png";
 
 export default function Navbar() {
   const { user, logout } = useAuth();

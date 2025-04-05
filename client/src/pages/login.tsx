@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/context/auth-context";
-import spouseyLogo from "@/assets/spousey-logo.png";
+import spouseyLogo from "@/assets/spousey-logo-transparent.png";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -164,7 +164,7 @@ export default function Login() {
         </div>
         <h2 className="text-3xl font-bold text-white mb-4">Communicate better with your partner</h2>
         <p className="text-muted-foreground text-lg mb-8">
-          Spousey.ai uses AI to help you express your feelings in the most effective way, strengthening your relationship one message at a time.
+          Spousey uses AI to help you express your feelings in the most effective way, strengthening your relationship one message at a time.
         </p>
         <ul className="space-y-4">
           <li className="flex items-center text-muted-foreground">

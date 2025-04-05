@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
-import spouseyLogo from "@/assets/spousey-logo.png";
+import spouseyLogo from "@/assets/spousey-logo-transparent.png";
 
 const registerSchema = z.object({
   username: z.string().min(3, { message: "Username must be at least 3 characters" }),
@@ -198,7 +198,7 @@ export default function Register() {
             </div>
           </div>
         </div>
-        <h2 className="text-3xl font-bold text-white mb-4">Join Spousey.ai Today</h2>
+        <h2 className="text-3xl font-bold text-white mb-4">Join Spousey Today</h2>
         <p className="text-muted-foreground text-lg mb-8">
           Start your journey to better communication and a stronger relationship. Create your account to access all features.
         </p>
