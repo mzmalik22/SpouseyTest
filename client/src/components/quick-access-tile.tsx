@@ -32,10 +32,8 @@ export default function QuickAccessTile({
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="ml-auto">
-          <Link href={linkUrl}>
-            <a className={`inline-flex items-center px-4 py-1.5 text-sm font-medium rounded-full ${linkTextColor} ${linkBgColor}`}>
-              {linkText}
-            </a>
+          <Link href={linkUrl} className={`inline-flex items-center px-4 py-1.5 text-sm font-medium rounded-full ${linkTextColor} ${linkBgColor}`}>
+            {linkText}
           </Link>
         </div>
       </div>
