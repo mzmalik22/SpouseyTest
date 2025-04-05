@@ -54,7 +54,9 @@ export default function CoachingSessions() {
       return await response.json();
     },
     onSuccess: (data: CoachingSession) => {
-      // Close the modal dialog
+      console.log("Session created successfully, navigating to:", `/coaching-sessions/${data.id}`);
+      
+      // Close the modal dialog if it's open
       setNewSessionOpen(false);
       setSessionTitle("");
       
@@ -66,14 +68,10 @@ export default function CoachingSessions() {
         description: "Your coaching session has been created.",
       });
       
-      // Manually fetch the session data before navigation
-      queryClient.prefetchQuery({
-        queryKey: ["/api/coaching/sessions", data.id],
-        queryFn: () => apiRequest("GET", `/api/coaching/sessions/${data.id}`).then(res => res.json())
-      }).then(() => {
-        // Navigate using setLocation (wouter) after prefetching
+      // Directly navigate to the new session
+      setTimeout(() => {
         setLocation(`/coaching-sessions/${data.id}`);
-      });
+      }, 100); // Short timeout to ensure state updates complete first
     },
     onError: (error: Error) => {
       toast({
@@ -450,13 +448,15 @@ export default function CoachingSessions() {
                       variant="outline" 
                       className="w-full text-white border-border hover:bg-background"
                       onClick={() => {
-                        // Prefetch the session data before navigation
-                        queryClient.prefetchQuery({
-                          queryKey: ["/api/coaching/sessions", session.id],
-                          queryFn: () => apiRequest("GET", `/api/coaching/sessions/${session.id}`).then(res => res.json())
-                        }).then(() => {
-                          // Use the router's navigation after prefetching
-                          setLocation(`/coaching-sessions/${session.id}`);
+                        console.log("Continue session clicked, navigating to:", `/coaching-sessions/${session.id}`);
+                        
+                        // Directly navigate without waiting for prefetch
+                        // This ensures we don't get stuck on this screen
+                        setLocation(`/coaching-sessions/${session.id}`);
+                        
+                        // Also invalidate the query to ensure fresh data
+                        queryClient.invalidateQueries({ 
+                          queryKey: ["/api/coaching/sessions", session.id] 
                         });
                       }}
                     >
