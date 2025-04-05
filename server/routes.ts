@@ -1,0 +1,302 @@
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { insertUserSchema, insertMessageSchema } from "@shared/schema";
+import session from "express-session";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import bcrypt from "bcrypt";
+import MemoryStore from "memorystore";
+import { refineMessage } from "./openai";
+
+const SessionStore = MemoryStore(session);
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize sample data
+  await storage.initializeSampleData();
+
+  // Session setup
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || "spousey-app-secret",
+      resave: false,
+      saveUninitialized: false,
+      cookie: { secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 },
+      store: new SessionStore({
+        checkPeriod: 86400000, // prune expired entries every 24h
+      }),
+    })
+  );
+
+  // Passport setup
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  passport.use(
+    new LocalStrategy(async (username, password, done) => {
+      try {
+        const user = await storage.getUserByUsername(username);
+        
+        if (!user) {
+          return done(null, false, { message: "Incorrect username." });
+        }
+        
+        // In a real app, we would hash the password
+        if (user.password !== password) {
+          return done(null, false, { message: "Incorrect password." });
+        }
+        
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    })
+  );
+
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
+  });
+
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      const user = await storage.getUser(id);
+      done(null, user);
+    } catch (err) {
+      done(err);
+    }
+  });
+
+  // Auth routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      const emailExists = await storage.getUserByEmail(userData.email);
+      if (emailExists) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+      
+      // In a real app, we would hash the password
+      // const hashedPassword = await bcrypt.hash(userData.password, 10);
+      // userData.password = hashedPassword;
+      
+      const user = await storage.createUser(userData);
+      
+      // Exclude password from response
+      const { password, ...userWithoutPassword } = user;
+      
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Login error after registration" });
+        }
+        return res.status(201).json(userWithoutPassword);
+      });
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/auth/login", passport.authenticate("local"), (req, res) => {
+    // User is logged in at this point
+    const { password, ...userWithoutPassword } = req.user as any;
+    return res.json(userWithoutPassword);
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout error" });
+      }
+      res.status(200).json({ message: "Logged out successfully" });
+    });
+  });
+
+  app.get("/api/auth/current-user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const { password, ...userWithoutPassword } = req.user as any;
+    return res.json(userWithoutPassword);
+  });
+
+  // Partner invitation
+  app.post("/api/users/invite", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    if (currentUser.partnerId) {
+      return res.status(400).json({ message: "You already have a partner connected" });
+    }
+    
+    // Generate a new invite code
+    const updatedUser = await storage.updateUser(currentUser.id, {
+      inviteCode: req.body.inviteCode || undefined
+    });
+    
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    return res.json({ inviteCode: updatedUser.inviteCode });
+  });
+
+  app.post("/api/users/accept-invite", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const { inviteCode } = req.body;
+    if (!inviteCode) {
+      return res.status(400).json({ message: "Invite code is required" });
+    }
+    
+    const currentUser = req.user as any;
+    if (currentUser.partnerId) {
+      return res.status(400).json({ message: "You already have a partner connected" });
+    }
+    
+    const partnerUser = await storage.getUserByInviteCode(inviteCode);
+    if (!partnerUser) {
+      return res.status(404).json({ message: "Invalid invite code" });
+    }
+    
+    if (partnerUser.id === currentUser.id) {
+      return res.status(400).json({ message: "You cannot connect with yourself" });
+    }
+    
+    // Connect both users
+    await storage.updateUser(currentUser.id, { partnerId: partnerUser.id });
+    await storage.updateUser(partnerUser.id, { partnerId: currentUser.id });
+    
+    // Clear the invite code
+    await storage.updateUser(partnerUser.id, { inviteCode: null });
+    
+    return res.json({ message: "Partner connected successfully" });
+  });
+
+  // Messages routes
+  app.get("/api/messages", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    if (!currentUser.partnerId) {
+      return res.status(400).json({ message: "No partner connected" });
+    }
+    
+    const messages = await storage.getMessages(currentUser.id, currentUser.partnerId);
+    return res.json(messages);
+  });
+
+  app.post("/api/messages", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    if (!currentUser.partnerId) {
+      return res.status(400).json({ message: "No partner connected" });
+    }
+    
+    try {
+      const messageData = {
+        ...req.body,
+        senderId: currentUser.id,
+        recipientId: currentUser.partnerId
+      };
+      
+      const validatedData = insertMessageSchema.parse(messageData);
+      const message = await storage.createMessage(validatedData);
+      
+      // Create activity for this message
+      if (validatedData.vibe) {
+        await storage.createActivity({
+          userId: currentUser.id,
+          type: "message",
+          description: `Message sent to ${currentUser.partnerId} with a ${validatedData.vibe} tone`
+        });
+      }
+      
+      return res.status(201).json(message);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Coaching routes
+  app.get("/api/coaching/topics", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const topics = await storage.getCoachingTopics();
+    return res.json(topics);
+  });
+
+  app.get("/api/coaching/topics/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const topicId = parseInt(req.params.id);
+    if (isNaN(topicId)) {
+      return res.status(400).json({ message: "Invalid topic ID" });
+    }
+    
+    const topic = await storage.getCoachingTopic(topicId);
+    if (!topic) {
+      return res.status(404).json({ message: "Topic not found" });
+    }
+    
+    const contents = await storage.getCoachingContents(topicId);
+    
+    return res.json({ topic, contents });
+  });
+
+  // Message refinement endpoint
+  app.post("/api/messages/refine", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const { message, vibe } = req.body;
+    
+    if (!message || !vibe) {
+      return res.status(400).json({ message: "Message and vibe are required" });
+    }
+    
+    try {
+      const refinedMessage = await refineMessage(message, vibe);
+      return res.json({ refinedMessage });
+    } catch (error) {
+      console.error("Error refining message:", error);
+      return res.status(500).json({ message: "Failed to refine message" });
+    }
+  });
+
+  // Activities routes
+  app.get("/api/activities", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    
+    const activities = await storage.getUserActivities(currentUser.id, limit);
+    return res.json(activities);
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
