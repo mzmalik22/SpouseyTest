@@ -61,12 +61,18 @@ export default function CoachingSessions() {
       // Invalidate the query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions"] });
       
-      // Navigate using setLocation (wouter) instead of direct window.location change
-      setLocation(`/coaching-sessions/${data.id}`);
-      
       toast({
         title: "Session created",
         description: "Your coaching session has been created.",
+      });
+      
+      // Manually fetch the session data before navigation
+      queryClient.prefetchQuery({
+        queryKey: ["/api/coaching/sessions", data.id],
+        queryFn: () => apiRequest("GET", `/api/coaching/sessions/${data.id}`).then(res => res.json())
+      }).then(() => {
+        // Navigate using setLocation (wouter) after prefetching
+        setLocation(`/coaching-sessions/${data.id}`);
       });
     },
     onError: (error: Error) => {
@@ -459,10 +465,14 @@ export default function CoachingSessions() {
                       variant="outline" 
                       className="w-full text-white border-border hover:bg-background"
                       onClick={() => {
-                        // Force re-fetch the session data when redirecting
-                        queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions", session.id] });
-                        // Use the router's navigation instead of window.location
-                        setLocation(`/coaching-sessions/${session.id}`);
+                        // Prefetch the session data before navigation
+                        queryClient.prefetchQuery({
+                          queryKey: ["/api/coaching/sessions", session.id],
+                          queryFn: () => apiRequest("GET", `/api/coaching/sessions/${session.id}`).then(res => res.json())
+                        }).then(() => {
+                          // Use the router's navigation after prefetching
+                          setLocation(`/coaching-sessions/${session.id}`);
+                        });
                       }}
                     >
                       Continue Session
