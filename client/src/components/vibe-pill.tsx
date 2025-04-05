@@ -19,13 +19,19 @@ export default function VibePill({ vibe, isSelected, onClick }: VibePillProps) {
   // Map vibe.id to emotion colors
   const getEmotionColor = (vibeId: string) => {
     switch(vibeId) {
-      case 'compassionate':
+      case 'affectionate':
         return 'emotion-peaceful';
-      case 'direct':
-        return 'emotion-angry';
-      case 'supportive':
+      case 'concerned':
         return 'emotion-sad';
-      case 'enthusiastic':
+      case 'apologetic':
+        return 'emotion-sad';
+      case 'playful':
+        return 'emotion-happy';
+      case 'excited':
+        return 'emotion-happy';
+      case 'flirty':
+        return 'emotion-happy';
+      case 'funny':
         return 'emotion-happy';
       default:
         return 'emotion-happy';
@@ -38,10 +44,10 @@ export default function VibePill({ vibe, isSelected, onClick }: VibePillProps) {
     <button
       type="button"
       onClick={() => onClick(vibe)}
-      className={`group flex flex-col items-center`}
+      className={`group flex items-center gap-2 px-2 py-1 rounded-md ${isSelected ? 'bg-muted/50' : 'hover:bg-muted/30'} transition-colors duration-200`}
     >
-      <div className={`emotion-circle ${isSelected ? emotionClass : 'border-white bg-transparent'} mb-1.5 transition-all duration-200`}>
-        <i className={`fas ${vibe.icon} ${isSelected ? 'text-black' : 'text-white'}`}></i>
+      <div className={`emotion-circle ${isSelected ? emotionClass : 'border-white bg-transparent'} transition-all duration-200`}>
+        <i className={`fas ${vibe.icon} ${isSelected ? 'text-black' : 'text-white'} text-xs`}></i>
       </div>
       <span className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-muted-foreground'}`}>
         {vibe.name}

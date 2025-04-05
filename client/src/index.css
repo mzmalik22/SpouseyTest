@@ -56,23 +56,23 @@
   
   /* Emotion circles for vibe options */
   .emotion-circle {
-    @apply rounded-full w-12 h-12 flex items-center justify-center border-2;
+    @apply rounded-full w-8 h-8 flex items-center justify-center border-2 flex-shrink-0;
   }
   
-  .emotion-circle-happy {
-    @apply bg-emotion-happy border-emotion-happy text-black;
+  .emotion-happy {
+    @apply bg-yellow-500 border-yellow-500 text-black;
   }
   
-  .emotion-circle-peaceful {
-    @apply bg-emotion-peaceful border-emotion-peaceful text-black;
+  .emotion-peaceful {
+    @apply bg-pink-500 border-pink-500 text-black;
   }
   
-  .emotion-circle-angry {
-    @apply bg-emotion-angry border-emotion-angry text-black;
+  .emotion-sad {
+    @apply bg-blue-500 border-blue-500 text-black;
   }
   
-  .emotion-circle-sad {
-    @apply bg-emotion-sad border-emotion-sad text-black;
+  .emotion-angry {
+    @apply bg-red-500 border-red-500 text-black;
   }
   
   /* Mobile optimizations */

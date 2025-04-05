@@ -131,10 +131,13 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
 
   return (
     <div className="border-t border-border p-4 bg-black">
-      {/* Message Refinement Options */}
+      {/* Message Refinement Options - Sidebar */}
       {enableRefinement && (
-        <div className="mb-4 overflow-x-auto no-scrollbar">
-          <div className="flex space-x-3 pb-2">
+        <div className="fixed z-20 sm:right-0 sm:top-1/2 sm:-translate-y-1/2 sm:rounded-l-lg
+                       bottom-0 right-1/2 translate-x-1/2 sm:translate-x-0
+                       bg-muted/90 backdrop-blur-sm border border-border py-4 px-3 shadow-lg">
+          <h4 className="text-xs text-center font-semibold text-white mb-3 sm:block hidden">CHOOSE A VIBE</h4>
+          <div className="flex sm:flex-col sm:space-y-4 flex-row space-x-4 sm:space-x-0">
             {vibeOptions.map((vibe) => (
               <VibePill
                 key={vibe.id}

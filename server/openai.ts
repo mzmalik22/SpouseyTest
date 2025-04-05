@@ -12,19 +12,19 @@ const openai = new OpenAI({
 
 // Map of vibe types to prompt instructions
 const vibePrompts: Record<string, string> = {
-  compassionate: "Rephrase this message to be warmer, more understanding, and show deep empathy. Express care for the recipient's feelings while maintaining the original intent.",
+  affectionate: "Rephrase this message to express deep love, warmth, and tenderness. Make it sound genuinely loving while maintaining the original intent.",
   
-  direct: "Rephrase this message to be clearer, more straightforward, and to the point. Remove hedging language and unnecessary qualifiers while maintaining the original intent.",
+  concerned: "Rephrase this message to show genuine worry and care. Express thoughtful concern for your partner's wellbeing while maintaining the original intent.",
+  
+  apologetic: "Rephrase this message to express sincere regret and a desire to make amends. Show genuine remorse while maintaining the original intent.",
   
   playful: "Rephrase this message to be more light-hearted and fun. Add a touch of humor or playfulness while maintaining the original intent.",
   
-  supportive: "Rephrase this message to be more encouraging and validating. Show support for the recipient while maintaining the original intent.",
+  excited: "Rephrase this message to express enthusiasm and positive energy. Show genuine excitement while maintaining the original intent.",
   
-  reflective: "Rephrase this message to be more thoughtful and contemplative. Add elements that show you've been thinking deeply about this while maintaining the original intent.",
+  flirty: "Rephrase this message to be subtly romantic and suggestive. Add a touch of loving intimacy while maintaining the original intent.",
   
-  appreciative: "Rephrase this message to express gratitude and acknowledgment. Focus on appreciation for the relationship while maintaining the original intent.",
-  
-  neutral: "Keep the message balanced and factual. Maintain a neutral tone while preserving the original intent."
+  funny: "Rephrase this message to be humorous and amusing. Add a witty joke or lighthearted humor while maintaining the original intent."
 };
 
 /**

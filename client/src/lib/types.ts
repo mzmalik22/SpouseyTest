@@ -53,16 +53,22 @@ export type VibeOption = {
 
 export const vibeOptions: VibeOption[] = [
   {
-    id: 'compassionate',
-    name: 'Compassionate',
+    id: 'affectionate',
+    name: 'Affectionate',
     icon: 'fa-heart',
     color: 'text-rose-500'
   },
   {
-    id: 'direct',
-    name: 'Direct',
-    icon: 'fa-bolt',
-    color: 'text-amber-500'
+    id: 'concerned',
+    name: 'Concerned',
+    icon: 'fa-exclamation-circle',
+    color: 'text-blue-500'
+  },
+  {
+    id: 'apologetic',
+    name: 'Apologetic',
+    icon: 'fa-hand-holding-heart',
+    color: 'text-purple-500'
   },
   {
     id: 'playful',
@@ -71,27 +77,21 @@ export const vibeOptions: VibeOption[] = [
     color: 'text-amber-500'
   },
   {
-    id: 'supportive',
-    name: 'Supportive',
-    icon: 'fa-hands-helping',
-    color: 'text-primary'
-  },
-  {
-    id: 'reflective',
-    name: 'Reflective',
-    icon: 'fa-brain',
-    color: 'text-purple-500'
-  },
-  {
-    id: 'appreciative',
-    name: 'Appreciative',
+    id: 'excited',
+    name: 'Excited',
     icon: 'fa-star',
-    color: 'text-amber-500'
+    color: 'text-yellow-500'
   },
   {
-    id: 'neutral',
-    name: 'Neutral',
-    icon: 'fa-balance-scale',
-    color: 'text-neutral-500'
+    id: 'flirty',
+    name: 'Flirty',
+    icon: 'fa-kiss-wink-heart',
+    color: 'text-pink-500'
+  },
+  {
+    id: 'funny',
+    name: 'Funny',
+    icon: 'fa-laugh',
+    color: 'text-green-500'
   }
 ];
