@@ -1,0 +1,83 @@
+# Spousey.ai App Prompt Description
+
+## App Overview
+Spousey.ai is a relationship wellness app designed to help couples communicate better and strengthen their relationships. Following the clean, accessible design approach of the "How We Feel" app, Spousey.ai offers a seamless experience where couples can exchange messages with helpful refinement options and receive personalized relationship coaching.
+
+## Design Philosophy
+- Simple, intuitive interface with soft colors and rounded elements
+- Minimalist design that focuses on emotional content
+- Clear navigation between key features
+- Supportive and non-judgmental tone throughout the experience
+- Accessible to users of all technical abilities
+
+## Core Functionality
+
+### 1. Authentication System
+- **Welcome Screen**: Warm, inviting splash screen with app logo and tagline
+- **Registration**: Simple form with email, password, and basic profile information
+- **Login**: Clean login screen with email/password fields
+- **Password Reset**: Straightforward process via email link
+- **Data Storage**: Secure cloud database to store user information and conversation history
+
+### 2. Dashboard Module
+- **Home Screen**: Shows partner connection status, recent messages, and coaching suggestions
+- **Partner Invitation**: 
+  - Generate a personalized link that can be copied and shared
+  - Display clear instructions for inviting a partner
+  - Show pending/accepted invitation status
+- **Quick Access Tiles**: Large, clearly labeled buttons for Messages and Coaching sections
+- **Relationship Stats**: Simple visualization of communication patterns (optional for future versions)
+
+### 3. Messages Module
+- **Conversation Interface**: Clean chat-style interface similar to familiar messaging apps
+- **Message Composition**: Simple text entry with send button
+- **Message Refinement Feature**:
+  - Optional toggle to enable/disable refinement before sending
+  - 7 distinct "vibes" to choose from with clear icons and labels:
+    1. Compassionate: Warm, understanding tone
+    2. Direct: Clear, straightforward communication
+    3. Playful: Light-hearted, fun approach
+    4. Supportive: Encouraging, validating language
+    5. Reflective: Thoughtful, contemplative phrasing
+    6. Appreciative: Focuses on gratitude and acknowledgment
+    7. Neutral: Balanced, factual communication
+  - Preview refined message before sending
+- **Notifications**: In-app alerts for new messages with customizable settings
+
+### 4. Coaching Module
+- **Initial Assessment**: Brief questionnaire about relationship goals and challenges
+- **Coaching Sessions**: Guided conversation flow with AI coach
+- **Topic Selection**: Menu of common relationship areas to work on
+- **Personalized Tips**: Actionable advice based on user inputs and goals
+- **Progress Tracking**: Simple way to mark helpful advice and track implementation
+- **Resources**: Links to articles and exercises for additional support
+
+## Visual Design Elements
+- Soft color palette with calming blues, warm pinks, and neutral tones
+- Rounded buttons and containers for a friendly feel
+- Clear typography with good readability
+- Expressive but simple icons for emotional states
+- Minimal use of text, favoring visual communication where possible
+- Smooth transitions between screens
+
+## User Flow
+1. User registers or logs in
+2. First-time users are guided to invite their partner
+3. Dashboard appears with clear navigation to Messages and Coaching
+4. Messages section allows for direct communication with optional refinement
+5. Coaching section provides personalized advice based on goals
+6. Notifications alert users to new messages or coaching opportunities
+
+## Technical Considerations
+- Responsive design for both mobile and desktop use
+- Offline capability for viewing previous messages
+- Secure encryption for all personal data
+- Fast loading times, especially for the messaging interface
+- Seamless cloud syncing across devices
+
+## Future Expansion Possibilities
+- Relationship milestone tracking
+- Scheduled check-ins and reminders
+- Shared goals and activities calendar
+- Voice message options
+- Integration with other wellness apps
