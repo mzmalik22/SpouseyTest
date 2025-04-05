@@ -309,7 +309,7 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
       // Invalidate messages cache to trigger a refetch
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
       
-      // Reset the composer
+      // Reset the composer - do this BEFORE showing any message to ensure clean UI
       resetComposer();
       
       // Notify parent component
@@ -327,9 +327,9 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
   };
 
   // Handle vibe selection
-  const handleVibeClick = (vibe: VibeOption) => {
+  const handleVibeClick = (vibe: VibeOption, shouldSendImmediately = false) => {
     // If selecting the same vibe again, deselect it
-    if (selectedVibe?.id === vibe.id) {
+    if (selectedVibe?.id === vibe.id && !shouldSendImmediately) {
       setSelectedVibe(null);
       setRefinedMessage("");
       return;
@@ -341,9 +341,30 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     // If we already have this vibe's refined message, use it
     if (refinedMessages[vibe.id]) {
       setRefinedMessage(refinedMessages[vibe.id]);
+      
+      // If requested, send the message immediately
+      if (shouldSendImmediately) {
+        setTimeout(() => {
+          sendMessage();
+        }, 50);
+      }
     } else if (originalMessage) {
       // Otherwise trigger a refinement for this vibe if we have an original message
       refineMessage();
+      
+      // If requested, send after refinement is complete
+      if (shouldSendImmediately) {
+        // Wait for refinement to complete before sending
+        const checkRefinementAndSend = setInterval(() => {
+          if (!isRefining) {
+            clearInterval(checkRefinementAndSend);
+            sendMessage();
+          }
+        }, 100);
+        
+        // Safety timeout to avoid infinite waiting
+        setTimeout(() => clearInterval(checkRefinementAndSend), 5000);
+      }
     }
   };
 
@@ -430,7 +451,14 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                                     ? 'border-primary' 
                                     : 'border-border hover:border-primary/50'
                                 }`}
-                                onClick={() => handleVibeClick(vibe)}
+                                onClick={() => {
+                                  handleVibeClick(vibe);
+                                  // Send message immediately after selecting a vibe
+                                  setTimeout(() => {
+                                    sendMessage();
+                                    setDialogOpen(false);
+                                  }, 50);
+                                }}
                               >
                                 <div className="flex items-center mb-1">
                                   <div 
