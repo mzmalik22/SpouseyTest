@@ -287,6 +287,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json({ topic, contents });
   });
 
+  // Coaching Sessions routes
+  app.get("/api/coaching/sessions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const userId = req.user?.id;
+    const sessions = await storage.getUserCoachingSessions(userId);
+    return res.json(sessions);
+  });
+
+  app.get("/api/coaching/sessions/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const sessionId = parseInt(req.params.id);
+    if (isNaN(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID" });
+    }
+    
+    const session = await storage.getCoachingSession(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+    
+    // Check if the session belongs to the current user
+    if (session.userId !== req.user?.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    
+    const messages = await storage.getCoachingSessionMessages(sessionId);
+    
+    // If the session has a related coaching topic, fetch it too
+    let topic = null;
+    if (session.topicId) {
+      topic = await storage.getCoachingTopic(session.topicId);
+    }
+    
+    return res.json({ session, messages, topic });
+  });
+
+  app.post("/api/coaching/sessions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const userId = req.user?.id;
+    const sessionData = req.body;
+    
+    try {
+      // Create a new coaching session
+      const session = await storage.createCoachingSession({
+        ...sessionData,
+        userId,
+      });
+      
+      return res.status(201).json(session);
+    } catch (error) {
+      console.error("Error creating coaching session:", error);
+      return res.status(500).json({ message: "Failed to create coaching session" });
+    }
+  });
+
+  app.post("/api/coaching/sessions/:id/messages", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const sessionId = parseInt(req.params.id);
+    if (isNaN(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID" });
+    }
+    
+    const session = await storage.getCoachingSession(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+    
+    // Check if the session belongs to the current user
+    if (session.userId !== req.user?.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    
+    const messageData = req.body;
+    
+    try {
+      // Create a new message in the coaching session
+      const message = await storage.createCoachingSessionMessage({
+        ...messageData,
+        sessionId,
+      });
+      
+      return res.status(201).json(message);
+    } catch (error) {
+      console.error("Error creating coaching session message:", error);
+      return res.status(500).json({ message: "Failed to create coaching session message" });
+    }
+  });
+
+  app.patch("/api/coaching/sessions/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const sessionId = parseInt(req.params.id);
+    if (isNaN(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID" });
+    }
+    
+    const session = await storage.getCoachingSession(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+    
+    // Check if the session belongs to the current user
+    if (session.userId !== req.user?.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    
+    const updateData = req.body;
+    
+    try {
+      // Update the coaching session
+      const updatedSession = await storage.updateCoachingSession(sessionId, updateData);
+      return res.json(updatedSession);
+    } catch (error) {
+      console.error("Error updating coaching session:", error);
+      return res.status(500).json({ message: "Failed to update coaching session" });
+    }
+  });
+
   // Message refinement endpoint for a single vibe
   app.post("/api/messages/refine", async (req, res) => {
     if (!req.isAuthenticated()) {

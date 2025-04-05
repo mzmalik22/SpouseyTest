@@ -59,6 +59,24 @@ export interface Notification {
   relatedId?: number;
 }
 
+export interface CoachingSession {
+  id: number;
+  userId: number;
+  title: string;
+  topicId?: number;
+  status: 'active' | 'completed' | 'archived';
+  lastMessageAt: Date;
+  createdAt: Date;
+}
+
+export interface CoachingSessionMessage {
+  id: number;
+  sessionId: number;
+  content: string;
+  isUserMessage: boolean;
+  createdAt: Date;
+}
+
 export type VibeOption = {
   id: string;
   name: string;

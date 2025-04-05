@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, ReactNode } from "react";
 import Navbar from "@/components/navbar";
 import { useAuth } from "@/context/auth-context";
 import { useQuery } from "@tanstack/react-query";
@@ -6,7 +6,12 @@ import { Link, useParams, useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import CoachingTopicItem from "@/components/coaching-topic";
 import CoachingContentView from "@/components/coaching-content";
-import { CoachingTopic } from "@/lib/types";
+import { CoachingTopic, CoachingContent } from "@/lib/types";
+
+interface TopicContentResponse {
+  topic: CoachingTopic;
+  contents: CoachingContent[];
+}
 
 export default function Coaching() {
   const { user } = useAuth();
@@ -15,13 +20,13 @@ export default function Coaching() {
   const [location, setLocation] = useLocation();
   
   // Fetch all coaching topics
-  const { data: topics, isLoading: topicsLoading } = useQuery({
+  const { data: topics, isLoading: topicsLoading } = useQuery<CoachingTopic[]>({
     queryKey: ["/api/coaching/topics"],
     enabled: !!user,
   });
   
   // Fetch specific topic content when a topic is selected
-  const { data: topicContent, isLoading: contentLoading } = useQuery({
+  const { data: topicContent, isLoading: contentLoading } = useQuery<TopicContentResponse>({
     queryKey: [`/api/coaching/topics/${topicId}`],
     enabled: !!topicId,
   });
@@ -82,7 +87,7 @@ export default function Coaching() {
                 <h3 className="font-medium text-white mb-4">Coaching Topics</h3>
                 
                 <ul className="space-y-2">
-                  {topics.map((topic: CoachingTopic) => (
+                  {topics.map((topic) => (
                     <CoachingTopicItem
                       key={topic.id}
                       topic={topic}
@@ -97,12 +102,18 @@ export default function Coaching() {
             {/* Coaching Content Area */}
             <div className="md:col-span-2">
               {topicContent && topicId ? (
-                <CoachingContentView
-                  topic={topicContent.topic}
-                  contents={topicContent.contents}
-                  previousTopic={previousTopic}
-                  nextTopic={nextTopic}
-                />
+                topicContent.topic && topicContent.contents ? (
+                  <CoachingContentView
+                    topic={topicContent.topic}
+                    contents={topicContent.contents}
+                    previousTopic={previousTopic}
+                    nextTopic={nextTopic}
+                  />
+                ) : (
+                  <div className="bg-muted rounded-2xl border border-border p-6 text-center">
+                    <p className="text-muted-foreground">Failed to load coaching content.</p>
+                  </div>
+                )
               ) : !contentLoading && (
                 <div className="bg-muted rounded-2xl border border-border p-6 text-center">
                   <p className="text-muted-foreground">Select a topic from the sidebar to view content.</p>
