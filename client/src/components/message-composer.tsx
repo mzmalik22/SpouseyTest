@@ -409,19 +409,7 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Only show selected vibe at the top if available */}
-                  {selectedVibe && refinedMessages[selectedVibe.id] && (
-                    <div className="p-3 bg-black/50 rounded-lg border border-primary">
-                      <div className="flex items-center mb-1">
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2" 
-                          style={{ backgroundColor: selectedVibe.color }}
-                        />
-                        <p className="text-xs text-white font-medium">Selected: {selectedVibe.name}</p>
-                      </div>
-                      <p className="text-sm text-white">{refinedMessages[selectedVibe.id]}</p>
-                    </div>
-                  )}
+                  {/* Removed selected vibe section at the top as it's redundant */}
                   
                   {/* All message previews listed */}
                   <div className="space-y-3">
