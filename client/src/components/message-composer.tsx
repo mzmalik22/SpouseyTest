@@ -63,14 +63,20 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     
     try {
       // Call our message refinement API endpoint
-      const response = await apiRequest<{ refinedMessage: string }>("POST", "/api/messages/refine", {
+      const response = await apiRequest("POST", "/api/messages/refine", {
         message: message.trim(),
         vibe: selectedVibe.id,
       });
       
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to refine message");
+      }
+      
       // Update with the AI-refined message
-      if (response && response.refinedMessage) {
-        setRefinedMessage(response.refinedMessage);
+      const data = await response.json();
+      if (data && data.refinedMessage) {
+        setRefinedMessage(data.refinedMessage);
       } else {
         // If something went wrong, use the original
         setRefinedMessage(message);
@@ -107,12 +113,8 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     setOriginalMessage(message);
     
     try {
-      const response = await fetch("/api/messages/refine-all-vibes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: message.trim() }),
+      const response = await apiRequest("POST", "/api/messages/refine-all-vibes", {
+        message: message.trim(),
       });
       
       const data = await response.json() as { refinedMessages: {[key: string]: string}, error?: string };
@@ -272,11 +274,16 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     try {
       setIsSending(true);
       
-      await apiRequest("POST", "/api/messages", {
+      const response = await apiRequest("POST", "/api/messages", {
         content: messageToSend,
         vibe: selectedVibe?.name,
         originalContent: originalMessage || undefined,
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to send message");
+      }
       
       // Invalidate messages cache to trigger a refetch
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });

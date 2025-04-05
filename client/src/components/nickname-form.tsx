@@ -87,27 +87,29 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
       const partnerNickname = nicknames.join(', ');
       
       // Set a default nickname for yourself if not already set
-      const payload: { partnerNickname: string; nickname?: string } = {
-        partnerNickname
+      const payload: { partnerNickname: string; nickname: string } = {
+        partnerNickname,
+        // Always provide a nickname value even if it's the same as current
+        nickname: user?.nickname || "Me"
       };
       
-      // Keep existing self nickname if present
-      if (user?.nickname) {
-        payload.nickname = user.nickname;
-      } else {
-        // Default to "Me" if no nickname set
-        payload.nickname = "Me";
+      const response = await apiRequest("POST", "/api/user/nickname", payload);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to save nicknames");
       }
       
-      const response = await apiRequest("POST", "/api/user/nickname", payload);
-      const updatedUser = await response.json();
+      const updatedUser = await response.json().catch(() => null);
       
-      // Update the user in the cache
-      queryClient.setQueryData(["/api/auth/current-user"], updatedUser);
-      
-      // Refresh user data
-      if (refreshUser) {
-        await refreshUser();
+      if (updatedUser) {
+        // Update the user in the cache
+        queryClient.setQueryData(["/api/auth/current-user"], updatedUser);
+        
+        // Refresh user data
+        if (refreshUser) {
+          await refreshUser();
+        }
       }
       
       toast({
@@ -123,7 +125,7 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
       console.error("Error saving nicknames:", error);
       toast({
         title: "Failed to save nicknames",
-        description: "Please try again later",
+        description: error instanceof Error ? error.message : "Please try again later",
         variant: "destructive",
       });
     } finally {
