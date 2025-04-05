@@ -6,7 +6,7 @@ import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcrypt";
-import { refineMessage } from "./openai";
+import { refineMessage, refineMessageAllVibes } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Using in-memory storage
@@ -287,7 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json({ topic, contents });
   });
 
-  // Message refinement endpoint
+  // Message refinement endpoint for a single vibe
   app.post("/api/messages/refine", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -305,6 +305,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error refining message:", error);
       return res.status(500).json({ message: "Failed to refine message" });
+    }
+  });
+  
+  // Message refinement endpoint for all vibes at once
+  app.post("/api/messages/refine-all-vibes", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const { message } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ message: "Message text is required" });
+    }
+    
+    try {
+      const result = await refineMessageAllVibes(message);
+      return res.json(result);
+    } catch (error) {
+      console.error("Error refining message for all vibes:", error);
+      return res.status(500).json({ 
+        refinedMessages: {},
+        error: "Failed to refine message for all vibes"
+      });
     }
   });
 

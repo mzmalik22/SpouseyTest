@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { vibeOptions, VibeOption } from "@/lib/types";
 import VibePill from "./vibe-pill";
-import { Send, ChevronDown, ChevronUp, Smile } from "lucide-react";
+import { Send, ChevronDown, ChevronUp, Smile, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -16,6 +16,12 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs";
 
 interface MessageComposerProps {
   onMessageSent: () => void;
@@ -26,9 +32,11 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
   const [enableRefinement, setEnableRefinement] = useState(true);
   const [selectedVibe, setSelectedVibe] = useState<VibeOption | null>(null);
   const [refinedMessage, setRefinedMessage] = useState("");
+  const [refinedMessages, setRefinedMessages] = useState<{[key: string]: string}>({});
   const [originalMessage, setOriginalMessage] = useState("");
   const [isRefining, setIsRefining] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isLoadingAllVibes, setIsLoadingAllVibes] = useState(false);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
@@ -36,9 +44,11 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
   const resetComposer = () => {
     setMessage("");
     setRefinedMessage("");
+    setRefinedMessages({});
     setOriginalMessage("");
     setSelectedVibe(null);
     setIsRefining(false);
+    setIsLoadingAllVibes(false);
     if (messageInputRef.current) {
       messageInputRef.current.focus();
     }
@@ -89,8 +99,48 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     }
   }, [selectedVibe, enableRefinement, message]);
 
+  // Fetch all refined message vibes at once
+  const fetchAllRefinedMessages = async () => {
+    if (!message.trim()) return;
+    
+    setIsLoadingAllVibes(true);
+    setOriginalMessage(message);
+    
+    try {
+      const response = await apiRequest<{ refinedMessages: {[key: string]: string}, error?: string }>(
+        "POST", 
+        "/api/messages/refine-all-vibes", 
+        { message: message.trim() }
+      );
+      
+      if (response && response.refinedMessages) {
+        setRefinedMessages(response.refinedMessages);
+        
+        // If a vibe is already selected, update the single refined message
+        if (selectedVibe && response.refinedMessages[selectedVibe.id]) {
+          setRefinedMessage(response.refinedMessages[selectedVibe.id]);
+        }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Message refinement failed",
+          description: response.error || "Unable to refine messages",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching all refined messages:", error);
+      toast({
+        variant: "destructive",
+        title: "Message refinement failed",
+        description: "Could not generate refined message options",
+      });
+    } finally {
+      setIsLoadingAllVibes(false);
+    }
+  };
+
   // Check if message is ready and show vibe selection
-  const prepareToSend = () => {
+  const prepareToSend = async () => {
     if (!message.trim()) {
       toast({
         variant: "destructive",
@@ -104,7 +154,8 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     if (!enableRefinement || selectedVibe) {
       sendMessage();
     } else {
-      // Otherwise, show the vibe selection dialog
+      // Otherwise, get all refined messages and show the vibe selection dialog
+      await fetchAllRefinedMessages();
       setDialogOpen(true);
     }
   };
@@ -153,7 +204,23 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
 
   // Handle vibe selection
   const handleVibeClick = (vibe: VibeOption) => {
-    setSelectedVibe(selectedVibe?.id === vibe.id ? null : vibe);
+    // If selecting the same vibe again, deselect it
+    if (selectedVibe?.id === vibe.id) {
+      setSelectedVibe(null);
+      setRefinedMessage("");
+      return;
+    }
+    
+    // Set the new selected vibe
+    setSelectedVibe(vibe);
+    
+    // If we already have this vibe's refined message, use it
+    if (refinedMessages[vibe.id]) {
+      setRefinedMessage(refinedMessages[vibe.id]);
+    } else if (originalMessage) {
+      // Otherwise trigger a refinement for this vibe if we have an original message
+      refineMessage();
+    }
   };
 
   // State for expanded view
@@ -196,7 +263,7 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
       {enableRefinement && (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger className="hidden" />
-          <DialogContent className="sm:max-w-md bg-muted border-border">
+          <DialogContent className="sm:max-w-xl bg-muted border-border">
             <DialogTitle className="text-lg font-semibold text-center text-white">
               Choose a message vibe
             </DialogTitle>
@@ -211,49 +278,82 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                 <p className="text-sm text-white">{message}</p>
               </div>
               
-              {/* Show refined message preview if available */}
-              {refinedMessage && selectedVibe && (
-                <div className="p-3 bg-black/50 rounded-lg border border-border">
-                  <p className="text-xs text-muted-foreground mb-1">With {selectedVibe.name} vibe:</p>
-                  <p className="text-sm text-white">{refinedMessage}</p>
+              {isLoadingAllVibes ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2 text-sm text-muted-foreground">Generating message options...</span>
                 </div>
-              )}
-              
-              <div className="grid grid-cols-2 gap-2">
-                {/* Initial top vibes */}
-                {topVibes.map((vibe) => (
-                  <VibePill
-                    key={vibe.id}
-                    vibe={vibe}
-                    isSelected={selectedVibe?.id === vibe.id}
-                    onClick={handleVibeClick}
-                  />
-                ))}
-                
-                {/* More vibes (expandable) */}
-                {expandedVibes && moreVibes.map((vibe) => (
-                  <VibePill
-                    key={vibe.id}
-                    vibe={vibe}
-                    isSelected={selectedVibe?.id === vibe.id}
-                    onClick={handleVibeClick}
-                  />
-                ))}
-              </div>
-              
-              {/* Show/Hide More Button */}
-              {moreVibes.length > 0 && (
-                <Button 
-                  variant="ghost" 
-                  className="w-full flex items-center justify-center gap-1 text-xs"
-                  onClick={() => setExpandedVibes(!expandedVibes)}
-                >
-                  {expandedVibes ? (
-                    <>Show less <ChevronUp className="h-3 w-3" /></>
-                  ) : (
-                    <>Show more vibes <ChevronDown className="h-3 w-3" /></>
-                  )}
-                </Button>
+              ) : (
+                <Tabs defaultValue="vibes" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="vibes">Vibe Options</TabsTrigger>
+                    <TabsTrigger value="preview">Message Preview</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="vibes" className="mt-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Display all vibes - we don't need to expand anymore */}
+                      {vibeOptions.map((vibe) => (
+                        <VibePill
+                          key={vibe.id}
+                          vibe={vibe}
+                          isSelected={selectedVibe?.id === vibe.id}
+                          onClick={handleVibeClick}
+                        />
+                      ))}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="preview" className="mt-4 space-y-4">
+                    {/* If we have selected a vibe, show its preview */}
+                    {selectedVibe && refinedMessages[selectedVibe.id] ? (
+                      <div className="p-3 bg-black/50 rounded-lg border border-border">
+                        <div className="flex items-center mb-2">
+                          <div 
+                            className="w-3 h-3 rounded-full mr-2" 
+                            style={{ backgroundColor: selectedVibe.color }}
+                          />
+                          <p className="text-xs text-white font-medium">{selectedVibe.name}</p>
+                        </div>
+                        <p className="text-sm text-white">{refinedMessages[selectedVibe.id]}</p>
+                      </div>
+                    ) : (
+                      <div className="text-center text-sm text-muted-foreground py-4">
+                        Select a vibe to see the preview
+                      </div>
+                    )}
+                    
+                    {/* Show all available vibe previews */}
+                    <div className="space-y-3">
+                      {Object.entries(refinedMessages).length > 0 && (
+                        <>
+                          <h4 className="text-xs text-muted-foreground font-medium">
+                            All message options:
+                          </h4>
+                          
+                          {vibeOptions.map(vibe => 
+                            refinedMessages[vibe.id] ? (
+                              <div 
+                                key={vibe.id} 
+                                className="p-3 bg-black/30 rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer"
+                                onClick={() => handleVibeClick(vibe)}
+                              >
+                                <div className="flex items-center mb-1">
+                                  <div 
+                                    className="w-2 h-2 rounded-full mr-2" 
+                                    style={{ backgroundColor: vibe.color }}
+                                  />
+                                  <p className="text-xs text-muted-foreground">{vibe.name}</p>
+                                </div>
+                                <p className="text-xs text-white">{refinedMessages[vibe.id]}</p>
+                              </div>
+                            ) : null
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               )}
               
               <div className="flex justify-between mt-4">
@@ -270,7 +370,7 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                     sendMessage();
                     setDialogOpen(false);
                   }}
-                  disabled={isSending || isRefining}
+                  disabled={isSending || isRefining || isLoadingAllVibes || !selectedVibe}
                 >
                   Send Message
                 </Button>

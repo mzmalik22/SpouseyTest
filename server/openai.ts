@@ -28,9 +28,19 @@ const vibePrompts: Record<string, string> = {
 };
 
 /**
- * Refines a message according to the selected communication vibe
+ * Interface for refined message response
+ */
+export interface RefinedMessagesResponse {
+  refinedMessages: {
+    [key: string]: string;
+  };
+  error?: string;
+}
+
+/**
+ * Refines a message for a single vibe
  * @param message The original message text
- * @param vibe The communication vibe to apply (compassionate, direct, etc.)
+ * @param vibe The communication vibe to apply
  * @returns The refined message text
  */
 export async function refineMessage(message: string, vibe: string): Promise<string> {
@@ -72,5 +82,95 @@ Do not include any explanation, just respond with the refined message text.
   } catch (error) {
     console.error("Error refining message with OpenAI:", error);
     return message; // Return the original message if there's an error
+  }
+}
+
+/**
+ * Refines a message according to all available communication vibes at once
+ * @param message The original message text
+ * @returns Object containing refined messages for each vibe
+ */
+export async function refineMessageAllVibes(message: string): Promise<RefinedMessagesResponse> {
+  // If message is empty or API key is missing, return an error
+  if (!message || !process.env.OPENAI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn("Message refinement skipped: OPENAI_API_KEY not set");
+      return { 
+        refinedMessages: {},
+        error: "API key not configured"
+      };
+    }
+    return { 
+      refinedMessages: {},
+      error: "Message is empty"
+    };
+  }
+  
+  try {
+    // Create a prompt for all vibes at once
+    const prompt = `
+As a relationship communication assistant, please help refine the following message between partners
+in multiple different emotional tones. For each tone, create a modified version of the message.
+
+Original message: "${message}"
+
+Please rewrite this message in the following 7 distinct vibes, maintaining the core meaning but adjusting the tone.
+Return the results in a valid JSON format with this structure:
+{
+  "affectionate": "refined message with affectionate tone",
+  "concerned": "refined message with concerned tone",
+  "apologetic": "refined message with apologetic tone",
+  "playful": "refined message with playful tone",
+  "excited": "refined message with excited tone",
+  "flirty": "refined message with flirty tone",
+  "funny": "refined message with funny tone"
+}
+
+For each vibe, follow these guidelines:
+- Affectionate: Express deep love, warmth, and tenderness
+- Concerned: Show genuine worry and care about the partner's wellbeing
+- Apologetic: Express sincere regret and a desire to make amends
+- Playful: Be more light-hearted and fun with a touch of humor
+- Excited: Express enthusiasm and positive energy
+- Flirty: Be subtly romantic and suggestive with a touch of loving intimacy
+- Funny: Be humorous and amusing with a witty joke or lighthearted humor
+
+The refined messages should:
+- Sound natural and authentic, not overly formal or robotic
+- Keep approximately the same length as the original message
+- Not add expressions like "I feel" unless they were in the original
+`;
+
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 1000,
+      response_format: { type: "json_object" }
+    });
+
+    // Parse the JSON response
+    const content = response.choices[0].message.content?.trim();
+    if (!content) {
+      throw new Error("Empty response from OpenAI");
+    }
+    
+    const parsedContent = JSON.parse(content);
+    return { refinedMessages: parsedContent };
+    
+  } catch (error) {
+    console.error("Error refining messages with OpenAI:", error);
+    
+    // Create fallback responses using the original message
+    const fallbackMessages: {[key: string]: string} = {};
+    Object.keys(vibePrompts).forEach(vibe => {
+      fallbackMessages[vibe] = message;
+    });
+    
+    return { 
+      refinedMessages: fallbackMessages,
+      error: "Failed to generate refined messages"
+    };
   }
 }
