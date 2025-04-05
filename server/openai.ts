@@ -23,6 +23,126 @@ function createOpenAIClient() {
   }
 }
 
+/**
+ * Interface for coach response
+ */
+export interface CoachResponse {
+  message: string;
+  error?: string;
+}
+
+/**
+ * Generates a relationship coach response based on user message and conversation history
+ * @param userMessage The latest message from the user
+ * @param conversationHistory Previous messages in the conversation (optional)
+ * @param userDetails User relationship details for context (optional)
+ * @returns AI-generated coach response
+ */
+export async function generateCoachResponse(
+  userMessage: string,
+  conversationHistory: { content: string, isUserMessage: boolean }[] = [],
+  userDetails?: {
+    nickname?: string | null,
+    partnerNickname?: string | null,
+    relationshipCondition?: string | null,
+    maritalStatus?: string | null
+  }
+): Promise<CoachResponse> {
+  // If OpenAI client is not available, return fallback response
+  if (!openai) {
+    console.warn("Coach response generation skipped: OpenAI client not available");
+    return { 
+      message: "I understand how you feel. Could you tell me more about that? The more details you share, the better I can help you navigate this situation.",
+      error: "OpenAI client not available"
+    };
+  }
+
+  try {
+    // Format conversation history for the prompt
+    const formattedHistory = conversationHistory.map(msg => {
+      return `${msg.isUserMessage ? "User" : "Coach"}: ${msg.content}`;
+    }).join("\n");
+    
+    // Create user details context if available
+    let userDetailsContext = "";
+    if (userDetails) {
+      userDetailsContext = "\nUser Details:";
+      if (userDetails.nickname) {
+        userDetailsContext += `\n- User's nickname: "${userDetails.nickname}"`;
+      }
+      if (userDetails.partnerNickname) {
+        userDetailsContext += `\n- Partner's nickname: "${userDetails.partnerNickname}"`;
+      }
+      if (userDetails.relationshipCondition) {
+        userDetailsContext += `\n- Relationship condition: ${userDetails.relationshipCondition}`;
+      }
+      if (userDetails.maritalStatus) {
+        userDetailsContext += `\n- Marital status: ${userDetails.maritalStatus}`;
+      }
+    }
+    
+    // Create system prompt for the coach
+    const systemPrompt = `
+You are a compassionate and insightful relationship coach named Dr. Heart. 
+Your expertise is in couples therapy, communication strategies, and emotional intelligence.
+
+IMPORTANT GUIDELINES:
+- Respond with empathy, warmth, and professional insight
+- Ask thoughtful follow-up questions to better understand the situation
+- Provide practical advice while validating feelings
+- Focus on improving communication, emotional connection, and relationship health
+- Keep responses concise (100-200 words)
+- If the user mentions specific relationship issues like trust, communication, intimacy, or conflict, address those directly
+- Occasionally reference relevant relationship psychology concepts when appropriate
+- Avoid generic platitudes; offer specific, actionable guidance
+- Never be judgmental or take sides
+- Use a warm, conversational tone that builds rapport
+- Use user's and partner's nicknames naturally if they are provided in the context
+
+Your goal is to help the user gain insight, develop healthier relationship patterns, and improve their connection with their partner.
+`;
+
+    // Create the prompt for the coach response
+    const prompt = `
+${userDetailsContext}
+
+${formattedHistory ? `Previous conversation:\n${formattedHistory}\n` : ""}
+
+User's latest message: "${userMessage}"
+
+Please provide a thoughtful, empathetic coach response that addresses the user's concerns and offers helpful guidance.
+`;
+
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 500,
+    });
+
+    // Return the coach response
+    const coachMessage = response.choices[0].message.content?.trim();
+    if (!coachMessage) {
+      throw new Error("Empty response from OpenAI");
+    }
+    
+    return { message: coachMessage };
+    
+  } catch (error) {
+    console.error("Error generating coach response with OpenAI:", error);
+    
+    // Return a fallback response in case of error
+    return { 
+      message: "I appreciate you sharing that with me. What do you think would be a first step toward improving this situation? Sometimes small changes can make a big difference.",
+      error: "Failed to generate coach response"
+    };
+  }
+}
+
 const openai = createOpenAIClient();
 
 // Map of vibe types to prompt instructions

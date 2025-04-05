@@ -6,7 +6,7 @@ import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcrypt";
-import { refineMessage, refineMessageAllVibes } from "./openai";
+import { refineMessage, refineMessageAllVibes, generateCoachResponse } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Using in-memory storage
@@ -382,10 +382,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionId,
       });
       
+      // If it's a user message, automatically generate the coach response
+      if (messageData.isUserMessage) {
+        // Fetch previous messages to provide as context
+        const previousMessages = await storage.getCoachingSessionMessages(sessionId);
+        
+        // Format messages for context (limit to last 10 messages to avoid token limits)
+        const conversationHistory = previousMessages
+          .slice(-10)
+          .map(msg => ({
+            content: msg.content,
+            isUserMessage: msg.isUserMessage
+          }));
+          
+        // Get current user details for personalization
+        const currentUser = req.user as any;
+        const userDetails = {
+          nickname: currentUser.nickname,
+          partnerNickname: currentUser.partnerNickname,
+          relationshipCondition: currentUser.relationshipCondition,
+          maritalStatus: currentUser.maritalStatus
+        };
+        
+        // Generate AI coach response
+        const coachResponse = await generateCoachResponse(
+          messageData.content,
+          conversationHistory,
+          userDetails
+        );
+        
+        // Save the coach response to the database
+        if (!coachResponse.error) {
+          await storage.createCoachingSessionMessage({
+            sessionId,
+            content: coachResponse.message,
+            isUserMessage: false
+          });
+        }
+      }
+      
       return res.status(201).json(message);
     } catch (error) {
       console.error("Error creating coaching session message:", error);
       return res.status(500).json({ message: "Failed to create coaching session message" });
+    }
+  });
+  
+  // Endpoint for generating coach responses without saving to the database
+  app.post("/api/coaching/generate-response", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const { message, conversationHistory } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ message: "Message is required" });
+    }
+    
+    try {
+      const currentUser = req.user as any;
+      const userDetails = {
+        nickname: currentUser.nickname,
+        partnerNickname: currentUser.partnerNickname,
+        relationshipCondition: currentUser.relationshipCondition,
+        maritalStatus: currentUser.maritalStatus
+      };
+      
+      const coachResponse = await generateCoachResponse(
+        message,
+        conversationHistory || [],
+        userDetails
+      );
+      
+      return res.json(coachResponse);
+    } catch (error: any) {
+      console.error("Error generating coach response:", error);
+      
+      // Return a fallback response with error info
+      return res.status(200).json({
+        message: "I appreciate your message. What specific aspects of your relationship would you like to focus on today?",
+        error: error.message || "Failed to generate coach response"
+      });
     }
   });
 
