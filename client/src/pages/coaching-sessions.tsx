@@ -60,8 +60,8 @@ export default function CoachingSessions() {
       // Invalidate the query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions"] });
       
-      // Navigate to the new session page with a direct URL change for reliable navigation
-      window.location.href = `/coaching-sessions/${data.id}`;
+      // Navigate using setLocation (wouter) instead of direct window.location change
+      setLocation(`/coaching-sessions/${data.id}`);
       
       toast({
         title: "Session created",
@@ -156,8 +156,20 @@ export default function CoachingSessions() {
     return responses[Math.floor(Math.random() * responses.length)];
   };
   
-  // If viewing a specific session
-  if (sessionId && !sessionLoading && sessionData && sessionData.session) {
+  // Show loading indicator while fetching session data
+  if (sessionId && sessionLoading) {
+    return (
+      <div className="h-full min-h-screen flex flex-col bg-black">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emotion-peaceful"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  // If viewing a specific session and data is loaded
+  if (sessionId && sessionData && sessionData.session) {
     return (
       <div className="h-full min-h-screen flex flex-col bg-black">
         <Navbar />
@@ -208,7 +220,7 @@ export default function CoachingSessions() {
                 <div className="flex items-center space-x-2 mt-1">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-white">
-                    {sessionData.session?.createdAt ? new Date(sessionData.session.createdAt).toLocaleDateString() : 'Just now'}
+                    {sessionData.session?.createdAt ? new Date(sessionData.session.createdAt).toLocaleDateString() : 'Today'}
                   </span>
                 </div>
               </div>
@@ -220,7 +232,7 @@ export default function CoachingSessions() {
                   <span className="text-white">
                     {sessionData.session?.lastMessageAt 
                       ? formatDistanceToNow(new Date(sessionData.session.lastMessageAt), { addSuffix: true })
-                      : 'Just now'}
+                      : 'No activity yet'}
                   </span>
                 </div>
               </div>
@@ -333,7 +345,7 @@ export default function CoachingSessions() {
                     <CardDescription>
                       {session.lastMessageAt 
                         ? formatDistanceToNow(new Date(session.lastMessageAt), { addSuffix: true })
-                        : 'Just now'}
+                        : 'Created recently'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -356,7 +368,8 @@ export default function CoachingSessions() {
                       onClick={() => {
                         // Force re-fetch the session data when redirecting
                         queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions", session.id] });
-                        window.location.href = `/coaching-sessions/${session.id}`;
+                        // Use the router's navigation instead of window.location
+                        setLocation(`/coaching-sessions/${session.id}`);
                       }}
                     >
                       Continue Session
