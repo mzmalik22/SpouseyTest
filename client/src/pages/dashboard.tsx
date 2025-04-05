@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import QuickAccessTile from "@/components/quick-access-tile";
 import ActivityItem from "@/components/activity-item";
 import PartnerInviteModal from "@/components/partner-invite-modal";
+import NicknameForm from "@/components/nickname-form";
 import { MessageSquare, BookOpen } from "lucide-react";
 
 export default function Dashboard() {
@@ -52,6 +53,11 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+          </div>
+          
+          {/* Nickname Form */}
+          <div className="mb-6">
+            <NicknameForm />
           </div>
           
           {/* Quick Access Tiles */}

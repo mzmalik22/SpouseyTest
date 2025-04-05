@@ -56,9 +56,16 @@ export interface RefinedMessagesResponse {
  * Refines a message for a single vibe
  * @param message The original message text
  * @param vibe The communication vibe to apply
+ * @param userNickname The nickname of the current user (optional)
+ * @param partnerNickname The nickname for the recipient (optional)
  * @returns The refined message text
  */
-export async function refineMessage(message: string, vibe: string): Promise<string> {
+export async function refineMessage(
+  message: string, 
+  vibe: string, 
+  userNickname?: string, 
+  partnerNickname?: string
+): Promise<string> {
   // If no vibe selected, message is empty, or OpenAI client is not available, return the original
   if (!message || !vibe || !vibePrompts[vibe.toLowerCase()] || !openai) {
     if (!openai) {
@@ -68,11 +75,24 @@ export async function refineMessage(message: string, vibe: string): Promise<stri
   }
   
   try {
+    // Create nickname context if available
+    let nicknameContext = "";
+    if (userNickname || partnerNickname) {
+      nicknameContext = "\nContext:";
+      if (userNickname) {
+        nicknameContext += `\n- The sender goes by the nickname "${userNickname}".`;
+      }
+      if (partnerNickname) {
+        nicknameContext += `\n- The recipient goes by the nickname "${partnerNickname}".`;
+      }
+      nicknameContext += "\nPlease incorporate these nicknames naturally if appropriate.";
+    }
+    
     // Create the prompt for the selected vibe
     const prompt = `
 As a relationship communication assistant, please help refine the following message between partners.
 
-Original message: "${message}"
+Original message: "${message}"${nicknameContext}
 
 ${vibePrompts[vibe.toLowerCase()]}
 
@@ -107,9 +127,15 @@ Do not include any explanation, just respond with the refined message text.
 /**
  * Refines a message according to all available communication vibes at once
  * @param message The original message text
+ * @param userNickname The nickname of the current user (optional)
+ * @param partnerNickname The nickname for the recipient (optional)
  * @returns Object containing refined messages for each vibe
  */
-export async function refineMessageAllVibes(message: string): Promise<RefinedMessagesResponse> {
+export async function refineMessageAllVibes(
+  message: string,
+  userNickname?: string,
+  partnerNickname?: string
+): Promise<RefinedMessagesResponse> {
   // If message is empty or OpenAI client is not available, return an error
   if (!message || !openai) {
     if (!openai) {
@@ -134,12 +160,25 @@ export async function refineMessageAllVibes(message: string): Promise<RefinedMes
   }
   
   try {
+    // Create nickname context if available
+    let nicknameContext = "";
+    if (userNickname || partnerNickname) {
+      nicknameContext = "\nContext:";
+      if (userNickname) {
+        nicknameContext += `\n- The sender goes by the nickname "${userNickname}".`;
+      }
+      if (partnerNickname) {
+        nicknameContext += `\n- The recipient goes by the nickname "${partnerNickname}".`;
+      }
+      nicknameContext += "\nPlease incorporate these nicknames naturally if appropriate.";
+    }
+    
     // Create a prompt for all vibes at once
     const prompt = `
 As a relationship communication assistant, please help refine the following message between partners
 in multiple different emotional tones. For each tone, create a modified version of the message.
 
-Original message: "${message}"
+Original message: "${message}"${nicknameContext}
 
 Please rewrite this message in the following 7 distinct vibes, maintaining the core meaning but adjusting the tone.
 Return the results in a valid JSON format with this structure:

@@ -9,6 +9,8 @@ export interface User {
   maritalStatus?: string;
   relationshipCondition?: string;
   onboardingCompleted?: boolean;
+  nickname?: string;
+  partnerNickname?: string;
 }
 
 export interface Message {

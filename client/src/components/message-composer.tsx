@@ -395,7 +395,8 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                         </h4>
                         
                         <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto pr-2">
-                          {vibeOptions.map(vibe => 
+                          {/* Show only first 4 vibes initially */}
+                          {vibeOptions.slice(0, expandedVibes ? vibeOptions.length : 4).map(vibe => 
                             refinedMessages[vibe.id] ? (
                               <div 
                                 key={vibe.id} 
@@ -416,6 +417,27 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                                 <p className="text-xs text-white">{refinedMessages[vibe.id]}</p>
                               </div>
                             ) : null
+                          )}
+                          
+                          {/* Show/Hide More button if there are more than 4 vibes */}
+                          {vibeOptions.length > 4 && (
+                            <Button
+                              variant="ghost"
+                              className="mt-1 text-xs text-muted-foreground hover:text-white flex items-center justify-center"
+                              onClick={() => setExpandedVibes(!expandedVibes)}
+                            >
+                              {expandedVibes ? (
+                                <>
+                                  <ChevronUp className="h-3 w-3 mr-1" />
+                                  Show Fewer Options
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-3 w-3 mr-1" />
+                                  Show More Options ({vibeOptions.length - 4} more)
+                                </>
+                              )}
+                            </Button>
                           )}
                         </div>
                       </>

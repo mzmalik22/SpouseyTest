@@ -136,7 +136,9 @@ export class MemStorage implements IStorage {
       inviteCode,
       onboardingCompleted: false,
       maritalStatus: null,
-      relationshipCondition: null
+      relationshipCondition: null,
+      nickname: null,
+      partnerNickname: null
     };
     this.users.set(id, user);
     

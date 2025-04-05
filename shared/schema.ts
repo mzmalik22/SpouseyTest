@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   maritalStatus: text("marital_status"),  // Will be one of maritalStatusValues
   relationshipCondition: text("relationship_condition"), // Will be one of relationshipConditionValues
   onboardingCompleted: boolean("onboarding_completed").default(false),
+  nickname: text("nickname"),  // User's own nickname
+  partnerNickname: text("partner_nickname")  // What they call their partner
 });
 
 export const messages = pgTable("messages", {

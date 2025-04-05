@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertMessageSchema } from "@shared/schema";
+import { insertUserSchema, insertMessageSchema, User } from "@shared/schema";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
@@ -293,6 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Not authenticated" });
     }
     
+    const currentUser = req.user as any;
     const { message, vibe } = req.body;
     
     if (!message || !vibe) {
@@ -300,7 +301,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      const refinedMessage = await refineMessage(message, vibe);
+      // Get user's nickname information if available
+      const userNickname = currentUser.nickname || null;
+      const partnerNickname = currentUser.partnerNickname || null;
+      
+      // Pass nickname info to refineMessage
+      const refinedMessage = await refineMessage(message, vibe, userNickname, partnerNickname);
       return res.json({ refinedMessage });
     } catch (error: any) {
       console.error("Error refining message with OpenAI:", error);
@@ -332,6 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Not authenticated" });
     }
     
+    const currentUser = req.user as any;
     const { message } = req.body;
     
     if (!message) {
@@ -339,7 +346,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      const result = await refineMessageAllVibes(message);
+      // Get user's nickname information if available
+      const userNickname = currentUser.nickname || null;
+      const partnerNickname = currentUser.partnerNickname || null;
+      
+      // Pass nickname info to refineMessageAllVibes
+      const result = await refineMessageAllVibes(message, userNickname, partnerNickname);
       return res.json(result);
     } catch (error: any) {
       console.error("Error refining message for all vibes:", error);
@@ -426,6 +438,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const activities = await storage.getUserActivities(currentUser.id, limit);
     return res.json(activities);
+  });
+  
+  // Nickname update route
+  app.post("/api/user/nickname", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    const { nickname, partnerNickname } = req.body;
+    
+    if (!nickname && !partnerNickname) {
+      return res.status(400).json({ message: "At least one nickname must be provided" });
+    }
+    
+    try {
+      // Create an update object with only the provided fields
+      const updateData: Partial<User> = {};
+      if (nickname) updateData.nickname = nickname;
+      if (partnerNickname) updateData.partnerNickname = partnerNickname;
+      
+      const updatedUser = await storage.updateUser(currentUser.id, updateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create activity for updating nicknames
+      await storage.createActivity({
+        userId: currentUser.id,
+        type: "profile_update",
+        description: `Updated nicknames: ${nickname ? 'self: ' + nickname : ''}${nickname && partnerNickname ? ', ' : ''}${partnerNickname ? 'partner: ' + partnerNickname : ''}`
+      });
+      
+      // Return updated user without password
+      const { password, ...userWithoutPassword } = updatedUser;
+      return res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Nickname update error:", error);
+      return res.status(500).json({ message: "Failed to update nicknames" });
+    }
   });
 
   const httpServer = createServer(app);
