@@ -143,6 +143,31 @@ export default function Messages() {
     refetchInterval: 5000, // Poll for new messages every 5 seconds
   });
 
+  // Mark messages as read when viewing the conversation
+  useEffect(() => {
+    const markMessagesAsRead = async () => {
+      if (!user?.partnerId || messages.length === 0) return;
+      
+      try {
+        // Check if there are any unread messages from partner
+        const hasUnreadMessages = messages.some(
+          (message) => message.senderId === user.partnerId && !message.read
+        );
+        
+        if (hasUnreadMessages) {
+          await apiRequest("POST", "/api/messages/mark-read");
+          
+          // Invalidate unread counts but not the messages (to avoid jumps)
+          queryClient.invalidateQueries({ queryKey: ["/api/messages/unread-count"] });
+        }
+      } catch (error) {
+        console.error("Error marking messages as read:", error);
+      }
+    };
+    
+    markMessagesAsRead();
+  }, [messages, user?.partnerId, queryClient]);
+
   // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {

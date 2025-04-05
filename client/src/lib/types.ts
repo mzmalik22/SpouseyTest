@@ -21,6 +21,7 @@ export interface Message {
   vibe?: string;
   originalContent?: string;
   timestamp: Date;
+  read?: boolean;
 }
 
 export interface CoachingTopic {
@@ -44,6 +45,18 @@ export interface Activity {
   type: string;
   description: string;
   timestamp: Date;
+}
+
+export interface Notification {
+  id: number;
+  userId: number;
+  type: 'message' | 'activity' | 'coaching' | 'partner' | 'system';
+  title: string;
+  content: string;
+  timestamp: Date;
+  read: boolean;
+  dismissed: boolean;
+  relatedId?: number;
 }
 
 export type VibeOption = {

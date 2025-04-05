@@ -440,6 +440,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json(activities);
   });
   
+  // Notification routes
+  app.get("/api/notifications", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    
+    const notifications = await storage.getUserNotifications(currentUser.id, limit);
+    return res.json(notifications);
+  });
+  
+  app.get("/api/notifications/unread-count", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    const count = await storage.getUnreadNotificationCount(currentUser.id);
+    return res.json({ count });
+  });
+  
+  app.post("/api/notifications/:id/read", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const notificationId = parseInt(req.params.id);
+    if (isNaN(notificationId)) {
+      return res.status(400).json({ message: "Invalid notification ID" });
+    }
+    
+    await storage.markNotificationAsRead(notificationId);
+    return res.json({ message: "Notification marked as read" });
+  });
+  
+  app.post("/api/notifications/read-all", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    await storage.markAllNotificationsAsRead(currentUser.id);
+    return res.json({ message: "All notifications marked as read" });
+  });
+  
+  app.post("/api/notifications/:id/dismiss", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const notificationId = parseInt(req.params.id);
+    if (isNaN(notificationId)) {
+      return res.status(400).json({ message: "Invalid notification ID" });
+    }
+    
+    await storage.dismissNotification(notificationId);
+    return res.json({ message: "Notification dismissed" });
+  });
+  
+  // Message reading status
+  app.post("/api/messages/mark-read", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    if (!currentUser.partnerId) {
+      return res.status(400).json({ message: "No partner connected" });
+    }
+    
+    await storage.markMessagesAsRead(currentUser.id, currentUser.partnerId);
+    return res.json({ message: "Messages marked as read" });
+  });
+  
+  app.get("/api/messages/unread-count", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    if (!currentUser.partnerId) {
+      return res.json({ count: 0 });
+    }
+    
+    const count = await storage.getUnreadMessageCount(currentUser.id);
+    return res.json({ count });
+  });
+  
   // Nickname update route
   app.post("/api/user/nickname", async (req, res) => {
     if (!req.isAuthenticated()) {

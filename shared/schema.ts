@@ -5,6 +5,7 @@ import { z } from "zod";
 // Enum values for marital status and relationship condition
 export const maritalStatusValues = ['single', 'dating', 'engaged', 'married', 'divorced', 'widowed'] as const;
 export const relationshipConditionValues = ['critical', 'stable', 'improving'] as const;
+export const notificationTypeValues = ['message', 'activity', 'coaching', 'partner', 'system'] as const;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -30,6 +31,7 @@ export const messages = pgTable("messages", {
   vibe: text("vibe"),
   originalContent: text("original_content"),
   timestamp: timestamp("timestamp").defaultNow(),
+  read: boolean("read").default(false), // Track whether message has been read
 });
 
 export const coachingTopics = pgTable("coaching_topics", {
@@ -55,16 +57,31 @@ export const activities = pgTable("activities", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// New table for notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type", { enum: notificationTypeValues }).notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  relatedId: integer("related_id"), // ID of related message, activity, etc.
+  read: boolean("read").default(false),
+  timestamp: timestamp("timestamp").defaultNow(),
+  dismissed: boolean("dismissed").default(false), // Allow user to dismiss notifications
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, partnerId: true });
-export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, timestamp: true });
+export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, timestamp: true, read: true });
 export const insertCoachingTopicSchema = createInsertSchema(coachingTopics).omit({ id: true });
 export const insertCoachingContentSchema = createInsertSchema(coachingContents).omit({ id: true });
 export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, timestamp: true });
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, timestamp: true, read: true, dismissed: true });
 
 // Types
 export type MaritalStatus = typeof maritalStatusValues[number];
 export type RelationshipCondition = typeof relationshipConditionValues[number];
+export type NotificationType = typeof notificationTypeValues[number];
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -76,3 +93,5 @@ export type InsertCoachingContent = z.infer<typeof insertCoachingContentSchema>;
 export type CoachingContent = typeof coachingContents.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;

@@ -10,6 +10,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import NotificationsDropdown from "./notifications-dropdown";
+import NotificationBadge from "./notification-badge";
+import { MessageSquare } from "lucide-react";
 import spouseyLogo from "@/assets/spousey-logo-transparent.png";
 
 export default function Navbar() {
@@ -41,7 +44,21 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            {/* Messages with unread count */}
+            <Link href="/messages">
+              <Button variant="ghost" size="icon" className="relative text-white hover:bg-muted-foreground/10">
+                <MessageSquare size={20} />
+                <span className="absolute -top-1 -right-1">
+                  <NotificationBadge endpoint="/api/messages/unread-count" />
+                </span>
+              </Button>
+            </Link>
+            
+            {/* Notifications dropdown */}
+            <NotificationsDropdown />
+            
+            {/* User profile dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative flex items-center gap-2 focus:ring-0 text-white hover:bg-muted-foreground/10">

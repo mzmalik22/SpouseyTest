@@ -9,7 +9,9 @@ import {
   type CoachingContent, 
   type InsertCoachingContent,
   type Activity,
-  type InsertActivity
+  type InsertActivity,
+  type Notification,
+  type InsertNotification
 } from "@shared/schema";
 import { pool } from "./db";
 import session from "express-session";
@@ -30,6 +32,8 @@ export interface IStorage {
   // Message methods
   getMessages(userId1: number, userId2: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
+  markMessagesAsRead(userId: number, partnerId: number): Promise<void>;
+  getUnreadMessageCount(userId: number): Promise<number>;
   
   // Coaching methods
   getCoachingTopics(): Promise<CoachingTopic[]>;
@@ -41,6 +45,14 @@ export interface IStorage {
   // Activity methods
   getUserActivities(userId: number, limit?: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
+  
+  // Notification methods
+  getUserNotifications(userId: number, limit?: number): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<void>;
+  markAllNotificationsAsRead(userId: number): Promise<void>;
+  dismissNotification(id: number): Promise<void>;
+  getUnreadNotificationCount(userId: number): Promise<number>;
   
   // Initialize with sample data
   initializeSampleData(): Promise<void>;
@@ -61,11 +73,13 @@ if (!globalData.__spouseyAppStorage) {
     coachingTopics: new Map<number, CoachingTopic>(),
     coachingContents: new Map<number, CoachingContent>(),
     activities: new Map<number, Activity>(),
+    notifications: new Map<number, Notification>(),
     userIdCounter: 1,
     messageIdCounter: 1,
     topicIdCounter: 1,
     contentIdCounter: 1,
     activityIdCounter: 1,
+    notificationIdCounter: 1,
     sessionStore: new MemoryStore({ 
       checkPeriod: 86400000 // prune expired entries every 24h
     })
@@ -78,11 +92,13 @@ export class MemStorage implements IStorage {
   private coachingTopics: Map<number, CoachingTopic>;
   private coachingContents: Map<number, CoachingContent>;
   private activities: Map<number, Activity>;
+  private notifications: Map<number, Notification>;
   private userIdCounter: number;
   private messageIdCounter: number;
   private topicIdCounter: number;
   private contentIdCounter: number;
   private activityIdCounter: number;
+  private notificationIdCounter: number;
   sessionStore: session.Store;
 
   constructor() {
@@ -93,11 +109,13 @@ export class MemStorage implements IStorage {
     this.coachingTopics = data.coachingTopics;
     this.coachingContents = data.coachingContents;
     this.activities = data.activities;
+    this.notifications = data.notifications;
     this.userIdCounter = data.userIdCounter;
     this.messageIdCounter = data.messageIdCounter;
     this.topicIdCounter = data.topicIdCounter;
     this.contentIdCounter = data.contentIdCounter;
     this.activityIdCounter = data.activityIdCounter;
+    this.notificationIdCounter = data.notificationIdCounter;
     this.sessionStore = data.sessionStore;
   }
 
@@ -180,13 +198,59 @@ export class MemStorage implements IStorage {
     globalData.__spouseyAppStorage.messageIdCounter = this.messageIdCounter;
     
     const timestamp = new Date();
-    const message: Message = { ...insertMessage, id, timestamp };
+    // Ensure we have proper null values instead of undefined for optional properties
+    const message: Message = {
+      ...insertMessage,
+      id,
+      timestamp,
+      read: false,
+      vibe: insertMessage.vibe || null,
+      originalContent: insertMessage.originalContent || null
+    };
+    
     this.messages.set(id, message);
     
     // Explicitly update the global map
     globalData.__spouseyAppStorage.messages.set(id, message);
     
+    // Create a notification for the recipient
+    const sender = await this.getUser(insertMessage.senderId);
+    const senderName = sender ? 
+      (sender.nickname || `${sender.firstName || ''} ${sender.lastName || ''}`.trim() || sender.username) : 
+      'Your partner';
+    
+    this.createNotification({
+      userId: insertMessage.recipientId,
+      type: 'message',
+      title: 'New Message',
+      content: `You have a new message from ${senderName}`,
+      relatedId: id
+    }).catch(err => {
+      console.error('Failed to create notification:', err);
+    });
+    
     return message;
+  }
+  
+  async markMessagesAsRead(userId: number, partnerId: number): Promise<void> {
+    // Find messages from partner to user and mark them as read
+    const messages = Array.from(this.messages.values()).filter(
+      message => message.senderId === partnerId && message.recipientId === userId && !message.read
+    );
+    
+    // Update each message's read status
+    for (const message of messages) {
+      message.read = true;
+      this.messages.set(message.id, message);
+      // Update global map
+      globalData.__spouseyAppStorage.messages.set(message.id, message);
+    }
+  }
+  
+  async getUnreadMessageCount(userId: number): Promise<number> {
+    return Array.from(this.messages.values()).filter(
+      message => message.recipientId === userId && !message.read
+    ).length;
   }
 
   // Coaching methods
@@ -258,6 +322,81 @@ export class MemStorage implements IStorage {
     globalData.__spouseyAppStorage.activities.set(id, activity);
     
     return activity;
+  }
+  
+  // Notification methods
+  async getUserNotifications(userId: number, limit?: number): Promise<Notification[]> {
+    const notifications = Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId)
+      .sort((a, b) => {
+        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+    return limit ? notifications.slice(0, limit) : notifications;
+  }
+  
+  async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    const id = this.notificationIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.notificationIdCounter = this.notificationIdCounter;
+    
+    const timestamp = new Date();
+    const notification: Notification = { 
+      ...insertNotification, 
+      id, 
+      timestamp, 
+      read: false,
+      dismissed: false,
+      // Ensure relatedId is null if undefined
+      relatedId: insertNotification.relatedId || null
+    };
+    
+    this.notifications.set(id, notification);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.notifications.set(id, notification);
+    
+    return notification;
+  }
+  
+  async markNotificationAsRead(id: number): Promise<void> {
+    const notification = this.notifications.get(id);
+    if (notification) {
+      notification.read = true;
+      this.notifications.set(id, notification);
+      // Update global map
+      globalData.__spouseyAppStorage.notifications.set(id, notification);
+    }
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<void> {
+    const userNotifications = Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId && !notification.read);
+      
+    for (const notification of userNotifications) {
+      notification.read = true;
+      this.notifications.set(notification.id, notification);
+      // Update global map
+      globalData.__spouseyAppStorage.notifications.set(notification.id, notification);
+    }
+  }
+  
+  async dismissNotification(id: number): Promise<void> {
+    const notification = this.notifications.get(id);
+    if (notification) {
+      notification.dismissed = true;
+      this.notifications.set(id, notification);
+      // Update global map
+      globalData.__spouseyAppStorage.notifications.set(id, notification);
+    }
+  }
+  
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    return Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId && !notification.read && !notification.dismissed)
+      .length;
   }
 
   // Initialize with sample data
