@@ -1,5 +1,4 @@
 import { useAuth } from "@/context/auth-context";
-import { Heart } from "lucide-react";
 import { Button } from "./ui/button";
 import { Link } from "wouter";
 import {
@@ -11,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import spouseyLogo from "@/assets/spousey-logo.png";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -34,10 +34,10 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link href="/">
-              <h1 className="text-xl font-bold text-white flex items-center gap-1 cursor-pointer">
-                <span className="text-emotion-happy">Spousey</span>.ai
-                <Heart className="h-4 w-4 text-emotion-happy" />
-              </h1>
+              <div className="flex items-center gap-2 cursor-pointer">
+                <img src={spouseyLogo} alt="Spousey" className="h-10 w-auto" />
+                <span className="text-xl font-bold text-white">Spousey</span>
+              </div>
             </Link>
           </div>
 

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/context/auth-context";
-import { Heart } from "lucide-react";
+import spouseyLogo from "@/assets/spousey-logo.png";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -48,10 +48,10 @@ export default function Login() {
       <div className="w-full md:w-1/2 p-8 flex items-center justify-center">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-2">
-              <span className="text-emotion-happy">Spousey</span>.ai
-              <Heart className="h-6 w-6 text-emotion-happy" />
-            </h1>
+            <div className="flex flex-col items-center justify-center gap-2">
+              <img src={spouseyLogo} alt="Spousey" className="h-20 w-auto mb-2" />
+              <h1 className="text-3xl font-bold text-white">Spousey</h1>
+            </div>
             <p className="text-muted-foreground mt-2">Strengthen your relationship through better communication</p>
           </div>
 
