@@ -44,12 +44,14 @@ export default function VibePill({ vibe, isSelected, onClick }: VibePillProps) {
     <button
       type="button"
       onClick={() => onClick(vibe)}
-      className={`group flex items-center gap-2 px-2 py-1 rounded-md ${isSelected ? 'bg-muted/50' : 'hover:bg-muted/30'} transition-colors duration-200`}
+      className={`group flex flex-col items-center justify-center p-3 rounded-lg ${
+        isSelected ? 'bg-muted/70 ring-1 ring-primary' : 'hover:bg-muted/30'
+      } transition-all duration-200 h-24 w-full`}
     >
-      <div className={`emotion-circle ${isSelected ? emotionClass : 'border-white bg-transparent'} transition-all duration-200`}>
-        <i className={`fas ${vibe.icon} ${isSelected ? 'text-black' : 'text-white'} text-xs`}></i>
+      <div className={`emotion-circle ${isSelected ? emotionClass : 'border-white bg-transparent'} mb-2 transition-all duration-200`}>
+        <i className={`fas ${vibe.icon} ${isSelected ? 'text-black' : 'text-white'} text-lg`}></i>
       </div>
-      <span className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-muted-foreground'}`}>
+      <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-muted-foreground'}`}>
         {vibe.name}
       </span>
     </button>

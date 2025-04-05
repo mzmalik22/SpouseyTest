@@ -56,7 +56,7 @@
   
   /* Emotion circles for vibe options */
   .emotion-circle {
-    @apply rounded-full w-8 h-8 flex items-center justify-center border-2 flex-shrink-0;
+    @apply rounded-full w-12 h-12 flex items-center justify-center border-2 flex-shrink-0;
   }
   
   .emotion-happy {

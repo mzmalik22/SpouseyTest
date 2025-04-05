@@ -5,10 +5,15 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { vibeOptions, VibeOption } from "@/lib/types";
 import VibePill from "./vibe-pill";
-import { Send } from "lucide-react";
+import { Send, ChevronDown, ChevronUp, Smile } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { 
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface MessageComposerProps {
   onMessageSent: () => void;
@@ -129,27 +134,17 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     setSelectedVibe(selectedVibe?.id === vibe.id ? null : vibe);
   };
 
+  // State for expanded view
+  const [expandedVibes, setExpandedVibes] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // Top 4 vibes for initial view
+  const topVibes = vibeOptions.slice(0, 4);
+  // Remaining vibes for expanded view
+  const moreVibes = vibeOptions.slice(4);
+
   return (
     <div className="border-t border-border p-4 bg-black">
-      {/* Message Refinement Options - Sidebar */}
-      {enableRefinement && (
-        <div className="fixed z-20 sm:right-0 sm:top-1/2 sm:-translate-y-1/2 sm:rounded-l-lg
-                       bottom-0 right-1/2 translate-x-1/2 sm:translate-x-0
-                       bg-muted/90 backdrop-blur-sm border border-border py-4 px-3 shadow-lg">
-          <h4 className="text-xs text-center font-semibold text-white mb-3 sm:block hidden">CHOOSE A VIBE</h4>
-          <div className="flex sm:flex-col sm:space-y-4 flex-row space-x-4 sm:space-x-0">
-            {vibeOptions.map((vibe) => (
-              <VibePill
-                key={vibe.id}
-                vibe={vibe}
-                isSelected={selectedVibe?.id === vibe.id}
-                onClick={handleVibeClick}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Message Preview */}
       {enableRefinement && refinedMessage && (
         <div className="mb-4 p-3 bg-muted rounded-xl border border-border">
@@ -173,6 +168,90 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
             </div>
           )}
         </div>
+      )}
+      
+      {/* Vibe Selection Dialog */}
+      {enableRefinement && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`flex items-center gap-2 mb-2 ${selectedVibe ? 'bg-muted text-white' : ''}`}
+              onClick={() => setDialogOpen(true)}
+            >
+              <Smile className="w-4 h-4" />
+              {selectedVibe ? `${selectedVibe.name} vibe` : "Choose a vibe"}
+              <ChevronDown className="w-3 h-3 opacity-70" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md bg-muted border-border">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-center text-white">Choose a message vibe</h3>
+              
+              {/* Show refined message preview if available */}
+              {refinedMessage && (
+                <div className="p-3 bg-black/50 rounded-lg border border-border">
+                  <p className="text-sm text-white mb-1">{refinedMessage}</p>
+                  <p className="text-xs text-muted-foreground italic">Your message with {selectedVibe?.name} vibe</p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-2">
+                {/* Initial top vibes */}
+                {topVibes.map((vibe) => (
+                  <VibePill
+                    key={vibe.id}
+                    vibe={vibe}
+                    isSelected={selectedVibe?.id === vibe.id}
+                    onClick={(selectedVibe) => {
+                      handleVibeClick(selectedVibe);
+                      if (!message) setDialogOpen(false);
+                    }}
+                  />
+                ))}
+                
+                {/* More vibes (expandable) */}
+                {expandedVibes && moreVibes.map((vibe) => (
+                  <VibePill
+                    key={vibe.id}
+                    vibe={vibe}
+                    isSelected={selectedVibe?.id === vibe.id}
+                    onClick={(selectedVibe) => {
+                      handleVibeClick(selectedVibe);
+                      if (!message) setDialogOpen(false);
+                    }}
+                  />
+                ))}
+              </div>
+              
+              {/* Show/Hide More Button */}
+              {moreVibes.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  className="w-full flex items-center justify-center gap-1 text-xs"
+                  onClick={() => setExpandedVibes(!expandedVibes)}
+                >
+                  {expandedVibes ? (
+                    <>Show less <ChevronUp className="h-3 w-3" /></>
+                  ) : (
+                    <>Show more vibes <ChevronDown className="h-3 w-3" /></>
+                  )}
+                </Button>
+              )}
+              
+              <div className="flex justify-end">
+                <Button 
+                  variant="default"
+                  className="hwf-button"
+                  onClick={() => setDialogOpen(false)}
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Message Input */}
