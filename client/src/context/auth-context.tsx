@@ -48,8 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const response = await apiRequest("POST", "/api/auth/login", { email, password });
-      const userData = await response.json();
+      const userData = await apiRequest<User>("POST", "/api/auth/login", { email, password });
       setUser(userData);
       toast({
         title: "Login Successful",
@@ -70,8 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (userData: any) => {
     try {
       setLoading(true);
-      const response = await apiRequest("POST", "/api/auth/register", userData);
-      const newUser = await response.json();
+      const newUser = await apiRequest<User>("POST", "/api/auth/register", userData);
       setUser(newUser);
       toast({
         title: "Registration Successful",
@@ -83,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "Registration Failed",
         description: error.message || "Could not create account",
       });
+      console.error("Registration failed:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -92,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       setLoading(true);
-      await apiRequest("POST", "/api/auth/logout", {});
+      await apiRequest<void>("POST", "/api/auth/logout", {});
       setUser(null);
       toast({
         title: "Logged Out",
@@ -104,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "Logout Failed",
         description: error.message || "Could not log out",
       });
+      console.error("Logout failed:", error);
     } finally {
       setLoading(false);
     }
