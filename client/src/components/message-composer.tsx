@@ -39,6 +39,27 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
   const [isLoadingAllVibes, setIsLoadingAllVibes] = useState(false);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  
+  // Listen for conversation starter messages
+  useEffect(() => {
+    const handleSetMessage = (event: CustomEvent) => {
+      if (event.detail && event.detail.message) {
+        setMessage(event.detail.message);
+        // Focus the textarea
+        if (messageInputRef.current) {
+          messageInputRef.current.focus();
+        }
+      }
+    };
+    
+    // Add event listener
+    window.addEventListener('set-message', handleSetMessage as EventListener);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('set-message', handleSetMessage as EventListener);
+    };
+  }, []);
 
   // Reset message composer after sending
   const resetComposer = () => {
