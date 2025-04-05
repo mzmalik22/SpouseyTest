@@ -113,29 +113,83 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
         { message: message.trim() }
       );
       
-      if (response && response.refinedMessages) {
-        setRefinedMessages(response.refinedMessages);
-        
-        // If a vibe is already selected, update the single refined message
-        if (selectedVibe && response.refinedMessages[selectedVibe.id]) {
-          setRefinedMessage(response.refinedMessages[selectedVibe.id]);
-        }
-      } else {
+      const data = await response.json();
+      
+      // If there's an API error like quota exceeded
+      if (data.error) {
+        console.warn("API error:", data.error);
         toast({
           variant: "destructive",
-          title: "Message refinement failed",
-          description: response.error || "Unable to refine messages",
+          title: "OpenAI API Error",
+          description: "Original message will be used for all vibes. This may be due to reaching API limits.",
         });
+        
+        // Create fallback messages using the original message for all vibes
+        const fallbackMessages = vibeOptions.reduce((acc, vibe) => {
+          acc[vibe.id] = message.trim();
+          return acc;
+        }, {} as Record<string, string>);
+        
+        setRefinedMessages(fallbackMessages);
+        
+        // Select affectionate by default
+        const defaultVibe = vibeOptions.find(v => v.id === 'affectionate');
+        if (defaultVibe) {
+          setSelectedVibe(defaultVibe);
+          setRefinedMessage(message.trim());
+        }
+        
+        return;
+      }
+      
+      if (data.refinedMessages && Object.keys(data.refinedMessages).length > 0) {
+        setRefinedMessages(data.refinedMessages);
+        
+        // If a vibe is already selected, update the single refined message
+        if (selectedVibe && data.refinedMessages[selectedVibe.id]) {
+          setRefinedMessage(data.refinedMessages[selectedVibe.id]);
+        }
+        // If no vibe is selected yet, select the first available one
+        else if (!selectedVibe) {
+          const firstVibeId = Object.keys(data.refinedMessages)[0];
+          const firstVibe = vibeOptions.find(v => v.id === firstVibeId);
+          if (firstVibe) {
+            setSelectedVibe(firstVibe);
+            setRefinedMessage(data.refinedMessages[firstVibeId]);
+          }
+        }
+      } else {
+        handleRefinementError("No refined messages returned");
       }
     } catch (error) {
       console.error("Error fetching all refined messages:", error);
-      toast({
-        variant: "destructive",
-        title: "Message refinement failed",
-        description: "Could not generate refined message options",
-      });
+      handleRefinementError("Could not generate refined message options");
     } finally {
       setIsLoadingAllVibes(false);
+    }
+  };
+  
+  // Helper for consistent error handling
+  const handleRefinementError = (errorMessage: string) => {
+    toast({
+      variant: "destructive",
+      title: "Message refinement failed",
+      description: errorMessage,
+    });
+    
+    // Create fallback messages using the original message
+    const fallbackMessages = vibeOptions.reduce((acc, vibe) => {
+      acc[vibe.id] = message.trim();
+      return acc;
+    }, {} as Record<string, string>);
+    
+    setRefinedMessages(fallbackMessages);
+    
+    // Select affectionate by default
+    const defaultVibe = vibeOptions.find(v => v.id === 'affectionate');
+    if (defaultVibe) {
+      setSelectedVibe(defaultVibe);
+      setRefinedMessage(message.trim());
     }
   };
 
@@ -284,76 +338,73 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                   <span className="ml-2 text-sm text-muted-foreground">Generating message options...</span>
                 </div>
               ) : (
-                <Tabs defaultValue="vibes" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="vibes">Vibe Options</TabsTrigger>
-                    <TabsTrigger value="preview">Message Preview</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="vibes" className="mt-4">
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* Display all vibes - we don't need to expand anymore */}
-                      {vibeOptions.map((vibe) => (
-                        <VibePill
-                          key={vibe.id}
-                          vibe={vibe}
-                          isSelected={selectedVibe?.id === vibe.id}
-                          onClick={handleVibeClick}
+                <div className="space-y-4">
+                  {/* Show selected vibe preview at the top if available */}
+                  {selectedVibe && refinedMessages[selectedVibe.id] && (
+                    <div className="p-3 bg-black/50 rounded-lg border border-border">
+                      <div className="flex items-center mb-1">
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2" 
+                          style={{ backgroundColor: selectedVibe.color }}
                         />
-                      ))}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="preview" className="mt-4 space-y-4">
-                    {/* If we have selected a vibe, show its preview */}
-                    {selectedVibe && refinedMessages[selectedVibe.id] ? (
-                      <div className="p-3 bg-black/50 rounded-lg border border-border">
-                        <div className="flex items-center mb-2">
-                          <div 
-                            className="w-3 h-3 rounded-full mr-2" 
-                            style={{ backgroundColor: selectedVibe.color }}
-                          />
-                          <p className="text-xs text-white font-medium">{selectedVibe.name}</p>
-                        </div>
-                        <p className="text-sm text-white">{refinedMessages[selectedVibe.id]}</p>
+                        <p className="text-xs text-white font-medium">Selected: {selectedVibe.name}</p>
                       </div>
+                      <p className="text-xs text-muted-foreground mb-2">{selectedVibe.description}</p>
+                      <p className="text-sm text-white">{refinedMessages[selectedVibe.id]}</p>
+                    </div>
+                  )}
+                  
+                  {/* Vibe Pills */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {vibeOptions.map((vibe) => (
+                      <VibePill
+                        key={vibe.id}
+                        vibe={vibe}
+                        isSelected={selectedVibe?.id === vibe.id}
+                        onClick={handleVibeClick}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* All message previews listed below */}
+                  <div className="space-y-3 mt-2">
+                    {Object.entries(refinedMessages).length > 0 ? (
+                      <>
+                        <h4 className="text-xs text-muted-foreground font-medium">
+                          Message previews for each vibe:
+                        </h4>
+                        
+                        {vibeOptions.map(vibe => 
+                          refinedMessages[vibe.id] ? (
+                            <div 
+                              key={vibe.id} 
+                              className={`p-3 bg-black/30 rounded-lg border transition-colors cursor-pointer ${
+                                selectedVibe?.id === vibe.id 
+                                  ? 'border-primary' 
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                              onClick={() => handleVibeClick(vibe)}
+                            >
+                              <div className="flex items-center mb-1">
+                                <div 
+                                  className="w-2 h-2 rounded-full mr-2" 
+                                  style={{ backgroundColor: vibe.color }}
+                                />
+                                <p className="text-xs text-muted-foreground font-medium">{vibe.name}</p>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mb-1">{vibe.description}</p>
+                              <p className="text-xs text-white">{refinedMessages[vibe.id]}</p>
+                            </div>
+                          ) : null
+                        )}
+                      </>
                     ) : (
-                      <div className="text-center text-sm text-muted-foreground py-4">
-                        Select a vibe to see the preview
+                      <div className="text-center text-sm text-muted-foreground py-2">
+                        Choose a vibe to see message previews
                       </div>
                     )}
-                    
-                    {/* Show all available vibe previews */}
-                    <div className="space-y-3">
-                      {Object.entries(refinedMessages).length > 0 && (
-                        <>
-                          <h4 className="text-xs text-muted-foreground font-medium">
-                            All message options:
-                          </h4>
-                          
-                          {vibeOptions.map(vibe => 
-                            refinedMessages[vibe.id] ? (
-                              <div 
-                                key={vibe.id} 
-                                className="p-3 bg-black/30 rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer"
-                                onClick={() => handleVibeClick(vibe)}
-                              >
-                                <div className="flex items-center mb-1">
-                                  <div 
-                                    className="w-2 h-2 rounded-full mr-2" 
-                                    style={{ backgroundColor: vibe.color }}
-                                  />
-                                  <p className="text-xs text-muted-foreground">{vibe.name}</p>
-                                </div>
-                                <p className="text-xs text-white">{refinedMessages[vibe.id]}</p>
-                              </div>
-                            ) : null
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                  </div>
+                </div>
               )}
               
               <div className="flex justify-between mt-4">

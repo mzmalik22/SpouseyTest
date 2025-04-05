@@ -49,6 +49,7 @@ export type VibeOption = {
   name: string;
   icon: string;
   color: string;
+  description: string;
 };
 
 export const vibeOptions: VibeOption[] = [
@@ -56,42 +57,49 @@ export const vibeOptions: VibeOption[] = [
     id: 'affectionate',
     name: 'Affectionate',
     icon: 'fa-heart',
-    color: 'text-rose-500'
+    color: 'text-rose-500',
+    description: 'Warm, loving, and caring tone that expresses fondness and tenderness'
   },
   {
     id: 'concerned',
     name: 'Concerned',
     icon: 'fa-exclamation-circle',
-    color: 'text-blue-500'
+    color: 'text-blue-500',
+    description: 'Shows genuine care and worry about your partner\'s wellbeing'
   },
   {
     id: 'apologetic',
     name: 'Apologetic',
     icon: 'fa-hand-holding-heart',
-    color: 'text-purple-500'
+    color: 'text-purple-500',
+    description: 'Expresses sincere regret and takes responsibility'
   },
   {
     id: 'playful',
     name: 'Playful',
     icon: 'fa-smile',
-    color: 'text-amber-500'
+    color: 'text-amber-500',
+    description: 'Light-hearted, fun, and engaging with a touch of humor'
   },
   {
     id: 'excited',
     name: 'Excited',
     icon: 'fa-star',
-    color: 'text-yellow-500'
+    color: 'text-yellow-500',
+    description: 'Enthusiastic and energetic with a sense of anticipation'
   },
   {
     id: 'flirty',
     name: 'Flirty',
     icon: 'fa-kiss-wink-heart',
-    color: 'text-pink-500'
+    color: 'text-pink-500',
+    description: 'Playfully romantic with subtle romantic innuendo'
   },
   {
     id: 'funny',
     name: 'Funny',
     icon: 'fa-laugh',
-    color: 'text-green-500'
+    color: 'text-green-500',
+    description: 'Humorous and witty with a focus on making your partner laugh'
   }
 ];
