@@ -186,7 +186,7 @@ export default function CoachingSessions() {
                         ? 'bg-blue-900/20 text-blue-500'
                         : 'bg-gray-900/20 text-gray-500'
                   }`}>
-                    {sessionData.session.status.charAt(0).toUpperCase() + sessionData.session.status.slice(1)}
+                    {sessionData.session.status && sessionData.session.status.charAt(0).toUpperCase() + sessionData.session.status.slice(1) || 'Active'}
                   </span>
                 </div>
               </div>
@@ -328,7 +328,7 @@ export default function CoachingSessions() {
                             ? 'bg-blue-900/20 text-blue-500'
                             : 'bg-gray-900/20 text-gray-500'
                       }`}>
-                        {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
+                        {session.status && session.status.charAt(0).toUpperCase() + session.status.slice(1) || 'Active'}
                       </span>
                     </div>
                   </CardContent>

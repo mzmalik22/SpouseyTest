@@ -7,7 +7,7 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import Messages from "@/pages/messages";
-import Coaching from "@/pages/coaching";
+
 import CoachingSessions from "@/pages/coaching-sessions";
 import Onboarding from "@/pages/onboarding";
 import { useAuth, AuthProvider } from "./context/auth-context";
@@ -48,10 +48,7 @@ function AppLayout({ children, isAuthPage = false }: { children: React.ReactNode
               <span className="h-6 w-6 text-white">💬</span>
               <span className="text-xs text-muted-foreground">Messages</span>
             </a>
-            <a href="/coaching" className="flex flex-col items-center p-2">
-              <span className="h-6 w-6 text-white">🧠</span>
-              <span className="text-xs text-muted-foreground">Topics</span>
-            </a>
+
             <a href="/coaching-sessions" className="flex flex-col items-center p-2">
               <span className="h-6 w-6 text-white">📋</span>
               <span className="text-xs text-muted-foreground">Sessions</span>
@@ -115,8 +112,7 @@ function Router() {
         <Route path="/onboarding" component={Onboarding} />
         <Route path="/" component={Dashboard} />
         <Route path="/messages" component={Messages} />
-        <Route path="/coaching" component={Coaching} />
-        <Route path="/coaching/:id" component={Coaching} />
+
         <Route path="/coaching-sessions" component={CoachingSessions} />
         <Route path="/coaching-sessions/:id" component={CoachingSessions} />
         <Route component={NotFound} />
