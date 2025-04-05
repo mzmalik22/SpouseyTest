@@ -52,6 +52,26 @@ export interface IStorage {
 import createMemoryStore from "memorystore";
 const MemoryStore = createMemoryStore(session);
 
+// Global state to persist data across server restarts during development
+const globalData = global as any;
+if (!globalData.__spouseyAppStorage) {
+  globalData.__spouseyAppStorage = {
+    users: new Map<number, User>(),
+    messages: new Map<number, Message>(),
+    coachingTopics: new Map<number, CoachingTopic>(),
+    coachingContents: new Map<number, CoachingContent>(),
+    activities: new Map<number, Activity>(),
+    userIdCounter: 1,
+    messageIdCounter: 1,
+    topicIdCounter: 1,
+    contentIdCounter: 1,
+    activityIdCounter: 1,
+    sessionStore: new MemoryStore({ 
+      checkPeriod: 86400000 // prune expired entries every 24h
+    })
+  };
+}
+
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private messages: Map<number, Message>;
@@ -66,19 +86,19 @@ export class MemStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.messages = new Map();
-    this.coachingTopics = new Map();
-    this.coachingContents = new Map();
-    this.activities = new Map();
-    this.userIdCounter = 1;
-    this.messageIdCounter = 1;
-    this.topicIdCounter = 1;
-    this.contentIdCounter = 1;
-    this.activityIdCounter = 1;
-    this.sessionStore = new MemoryStore({ 
-      checkPeriod: 86400000 // prune expired entries every 24h
-    });
+    // Use the global data to persist across server restarts
+    const data = globalData.__spouseyAppStorage;
+    this.users = data.users;
+    this.messages = data.messages;
+    this.coachingTopics = data.coachingTopics;
+    this.coachingContents = data.coachingContents;
+    this.activities = data.activities;
+    this.userIdCounter = data.userIdCounter;
+    this.messageIdCounter = data.messageIdCounter;
+    this.topicIdCounter = data.topicIdCounter;
+    this.contentIdCounter = data.contentIdCounter;
+    this.activityIdCounter = data.activityIdCounter;
+    this.sessionStore = data.sessionStore;
   }
 
   // User methods
@@ -106,9 +126,16 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.userIdCounter = this.userIdCounter;
+    
     const inviteCode = uuidv4().substring(0, 8);
     const user: User = { ...insertUser, id, inviteCode };
     this.users.set(id, user);
+    
+    // Explicitly update the global map to ensure persistence
+    globalData.__spouseyAppStorage.users.set(id, user);
+    
     return user;
   }
 
@@ -118,6 +145,10 @@ export class MemStorage implements IStorage {
     
     const updatedUser = { ...user, ...data };
     this.users.set(id, updatedUser);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.users.set(id, updatedUser);
+    
     return updatedUser;
   }
 
@@ -136,9 +167,16 @@ export class MemStorage implements IStorage {
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
     const id = this.messageIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.messageIdCounter = this.messageIdCounter;
+    
     const timestamp = new Date();
     const message: Message = { ...insertMessage, id, timestamp };
     this.messages.set(id, message);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.messages.set(id, message);
+    
     return message;
   }
 
@@ -153,8 +191,15 @@ export class MemStorage implements IStorage {
 
   async createCoachingTopic(insertTopic: InsertCoachingTopic): Promise<CoachingTopic> {
     const id = this.topicIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.topicIdCounter = this.topicIdCounter;
+    
     const topic: CoachingTopic = { ...insertTopic, id };
     this.coachingTopics.set(id, topic);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.coachingTopics.set(id, topic);
+    
     return topic;
   }
 
@@ -166,8 +211,15 @@ export class MemStorage implements IStorage {
 
   async createCoachingContent(insertContent: InsertCoachingContent): Promise<CoachingContent> {
     const id = this.contentIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.contentIdCounter = this.contentIdCounter;
+    
     const content: CoachingContent = { ...insertContent, id };
     this.coachingContents.set(id, content);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.coachingContents.set(id, content);
+    
     return content;
   }
 
@@ -186,14 +238,29 @@ export class MemStorage implements IStorage {
 
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
     const id = this.activityIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.activityIdCounter = this.activityIdCounter;
+    
     const timestamp = new Date();
     const activity: Activity = { ...insertActivity, id, timestamp };
     this.activities.set(id, activity);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.activities.set(id, activity);
+    
     return activity;
   }
 
   // Initialize with sample data
   async initializeSampleData(): Promise<void> {
+    // Check if sample data already exists
+    if (this.users.size > 0) {
+      console.log("Sample data already exists, skipping initialization");
+      return;
+    }
+    
+    console.log("Initializing sample data...");
+    
     // Create sample users
     const user1 = await this.createUser({
       username: "john_doe",
