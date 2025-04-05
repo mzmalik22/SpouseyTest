@@ -12,6 +12,8 @@ import { queryClient } from "@/lib/queryClient";
 import { 
   Dialog,
   DialogContent,
+  DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 
@@ -87,6 +89,26 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     }
   }, [selectedVibe, enableRefinement, message]);
 
+  // Check if message is ready and show vibe selection
+  const prepareToSend = () => {
+    if (!message.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Can't send empty message",
+        description: "Please type a message before sending.",
+      });
+      return;
+    }
+    
+    // If refinement is disabled or we already have a vibe selected, send directly
+    if (!enableRefinement || selectedVibe) {
+      sendMessage();
+    } else {
+      // Otherwise, show the vibe selection dialog
+      setDialogOpen(true);
+    }
+  };
+  
   // Send the message
   const sendMessage = async () => {
     const messageToSend = enableRefinement && refinedMessage ? refinedMessage : message;
@@ -170,30 +192,30 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
         </div>
       )}
       
-      {/* Vibe Selection Dialog */}
+      {/* Vibe Selection Dialog - No visible trigger, opened by send button */}
       {enableRefinement && (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className={`flex items-center gap-2 mb-2 ${selectedVibe ? 'bg-muted text-white' : ''}`}
-              onClick={() => setDialogOpen(true)}
-            >
-              <Smile className="w-4 h-4" />
-              {selectedVibe ? `${selectedVibe.name} vibe` : "Choose a vibe"}
-              <ChevronDown className="w-3 h-3 opacity-70" />
-            </Button>
-          </DialogTrigger>
+          <DialogTrigger className="hidden" />
           <DialogContent className="sm:max-w-md bg-muted border-border">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-center text-white">Choose a message vibe</h3>
+            <DialogTitle className="text-lg font-semibold text-center text-white">
+              Choose a message vibe
+            </DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground">
+              Select how you want your message to sound
+            </DialogDescription>
+            
+            <div className="space-y-4 mt-2">
+              {/* Original message display */}
+              <div className="p-3 bg-black/70 rounded-lg border border-border">
+                <p className="text-xs text-muted-foreground mb-1">Your message:</p>
+                <p className="text-sm text-white">{message}</p>
+              </div>
               
               {/* Show refined message preview if available */}
-              {refinedMessage && (
+              {refinedMessage && selectedVibe && (
                 <div className="p-3 bg-black/50 rounded-lg border border-border">
-                  <p className="text-sm text-white mb-1">{refinedMessage}</p>
-                  <p className="text-xs text-muted-foreground italic">Your message with {selectedVibe?.name} vibe</p>
+                  <p className="text-xs text-muted-foreground mb-1">With {selectedVibe.name} vibe:</p>
+                  <p className="text-sm text-white">{refinedMessage}</p>
                 </div>
               )}
               
@@ -204,10 +226,7 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                     key={vibe.id}
                     vibe={vibe}
                     isSelected={selectedVibe?.id === vibe.id}
-                    onClick={(selectedVibe) => {
-                      handleVibeClick(selectedVibe);
-                      if (!message) setDialogOpen(false);
-                    }}
+                    onClick={handleVibeClick}
                   />
                 ))}
                 
@@ -217,10 +236,7 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                     key={vibe.id}
                     vibe={vibe}
                     isSelected={selectedVibe?.id === vibe.id}
-                    onClick={(selectedVibe) => {
-                      handleVibeClick(selectedVibe);
-                      if (!message) setDialogOpen(false);
-                    }}
+                    onClick={handleVibeClick}
                   />
                 ))}
               </div>
@@ -240,13 +256,23 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                 </Button>
               )}
               
-              <div className="flex justify-end">
+              <div className="flex justify-between mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
                 <Button 
                   variant="default"
                   className="hwf-button"
-                  onClick={() => setDialogOpen(false)}
+                  onClick={() => {
+                    sendMessage();
+                    setDialogOpen(false);
+                  }}
+                  disabled={isSending || isRefining}
                 >
-                  Done
+                  Send Message
                 </Button>
               </div>
             </div>
@@ -256,7 +282,15 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
 
       {/* Message Input */}
       <div className="flex items-end">
-        <div className="flex-1 mr-2">
+        <div className="flex-1 mr-2 relative">
+          {enableRefinement && selectedVibe && (
+            <div 
+              className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full text-xs font-medium"
+              style={{ backgroundColor: selectedVibe.color, color: 'black' }}
+            >
+              {selectedVibe.name}
+            </div>
+          )}
           <Textarea
             ref={messageInputRef}
             value={message}
@@ -267,8 +301,8 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
           />
         </div>
         <Button
-          onClick={sendMessage}
-          disabled={isSending || isRefining || (!message && !refinedMessage)}
+          onClick={prepareToSend}
+          disabled={isSending || isRefining || !message.trim()}
           className="hwf-button h-12 w-12 !bg-white !text-black !rounded-full"
         >
           <Send className="h-5 w-5" />
