@@ -1,13 +1,13 @@
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent, useRef } from "react";
 import Navbar from "@/components/navbar";
 import { useAuth } from "@/context/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useParams, useLocation } from "wouter";
-import { ArrowLeft, MessageCircle, Plus, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, MessageCircle, Plus, Calendar, Clock, Heart, User, UserPlus2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CoachingSession, CoachingSessionMessage } from "@/lib/types";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,6 +32,7 @@ export default function CoachingSessions() {
   const [newSessionOpen, setNewSessionOpen] = useState(false);
   const [sessionTitle, setSessionTitle] = useState("");
   const [newMessage, setNewMessage] = useState("");
+  const messageContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
   // Fetch all coaching sessions
@@ -78,6 +79,21 @@ export default function CoachingSessions() {
     }
   });
   
+  // Function to scroll to the bottom of the message container
+  const scrollToBottom = () => {
+    if (messageContainerRef.current) {
+      messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
+    }
+  };
+  
+  // Effect to scroll to bottom when messages change or when session data loads
+  useEffect(() => {
+    if (sessionData?.messages?.length) {
+      // Small delay to ensure DOM has updated
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [sessionData?.messages]);
+  
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { sessionId: number; content: string; isUserMessage: boolean }) => {
@@ -87,6 +103,7 @@ export default function CoachingSessions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions", sessionId] });
       setNewMessage("");
+      // Scroll to bottom after sending a message (will happen via the useEffect when data updates)
     },
     onError: (error: Error) => {
       toast({
@@ -140,20 +157,56 @@ export default function CoachingSessions() {
     }, 1500);
   };
   
-  // Simple coach response generator (this would be replaced with OpenAI in a production app)
+  // Enhanced coach response generator that provides more contextual responses
   const generateCoachResponse = (userMessage: string): string => {
-    const responses = [
-      "I understand how you feel. Could you tell me more about that?",
-      "That's an interesting perspective. How does this affect your relationship?",
-      "I appreciate you sharing that. What do you think would help in this situation?",
-      "It sounds like this is important to you. How has your partner responded?",
-      "Thank you for your honesty. Have you discussed this with your partner?",
-      "I'm here to support you. What outcome are you hoping for?",
-      "That must be challenging. How have you been coping with this?"
+    // Context-aware responses based on common relationship themes
+    const lowerMessage = userMessage.toLowerCase();
+    
+    // Check for specific themes in the message
+    if (lowerMessage.includes("communication") || lowerMessage.includes("talk") || lowerMessage.includes("understand")) {
+      return "Communication seems to be a key concern. What specific communication challenges are you facing with your partner? Sometimes writing down your thoughts before discussing them can help you express yourself more clearly.";
+    }
+    
+    if (lowerMessage.includes("trust") || lowerMessage.includes("cheat") || lowerMessage.includes("lie")) {
+      return "Trust is a fundamental element in relationships. Can you tell me more about what's happened that's affected trust between you? Building trust often takes time and consistent actions.";
+    }
+    
+    if (lowerMessage.includes("anger") || lowerMessage.includes("fight") || lowerMessage.includes("argue") || lowerMessage.includes("mad")) {
+      return "Conflict is normal in relationships, but how we handle it matters. When you feel anger rising, try taking a brief pause or using 'I feel' statements instead of accusations. What typically triggers these arguments?";
+    }
+    
+    if (lowerMessage.includes("time") || lowerMessage.includes("busy") || lowerMessage.includes("attention")) {
+      return "Quality time is one of the key love languages. Have you discussed with your partner what your expectations are for time together? Sometimes scheduling regular date nights can help prioritize your relationship.";
+    }
+    
+    if (lowerMessage.includes("sex") || lowerMessage.includes("intimate") || lowerMessage.includes("physical")) {
+      return "Physical intimacy is an important aspect of many relationships. Have you been able to have an open conversation with your partner about your needs and expectations? Sometimes these conversations are difficult but necessary.";
+    }
+    
+    if (lowerMessage.includes("family") || lowerMessage.includes("parent") || lowerMessage.includes("child") || lowerMessage.includes("kid")) {
+      return "Family dynamics can add complexity to relationships. How do you and your partner navigate family boundaries? It's often helpful to present a unified approach when dealing with extended family matters.";
+    }
+    
+    if (lowerMessage.includes("money") || lowerMessage.includes("finance") || lowerMessage.includes("spend")) {
+      return "Financial disagreements are common in relationships. Have you and your partner discussed your financial values and goals? Creating a shared budget that includes both joint expenses and personal spending money can help reduce tension.";
+    }
+    
+    if (lowerMessage.includes("appreciate") || lowerMessage.includes("thank") || lowerMessage.includes("love")) {
+      return "Expressing appreciation is a powerful way to strengthen your relationship. Consider starting a gratitude practice where you share one thing you appreciate about each other daily. What do you value most about your partner?";
+    }
+    
+    // Default responses for when no specific theme is detected
+    const defaultResponses = [
+      "I understand how you feel. Could you tell me more about that? The more details you share, the better I can help you navigate this situation.",
+      "That's an interesting perspective. How does this affect your day-to-day relationship? Sometimes patterns emerge that we don't initially recognize.",
+      "Thank you for sharing that with me. What do you think would be a first step toward improving this situation? Sometimes small changes can make a big difference.",
+      "It sounds like this is important to you. How has your partner responded when you've expressed these feelings? Understanding both perspectives can be helpful.",
+      "I appreciate your honesty. Have you discussed these feelings directly with your partner? Sometimes our partners aren't aware of how their actions affect us.",
+      "I'm here to support you through this. What outcome are you hoping for in this situation? Having a clear goal can help guide our conversation.",
+      "That must be challenging. How have you been taking care of yourself while dealing with this? Self-care is essential during relationship stress."
     ];
     
-    // In a real app, this would use AI to generate a contextual response
-    return responses[Math.floor(Math.random() * responses.length)];
+    return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
   };
   
   // Show loading indicator while fetching session data
@@ -242,25 +295,71 @@ export default function CoachingSessions() {
           <div className="bg-muted rounded-2xl border border-border p-6">
             <h3 className="text-lg font-medium text-white mb-4">Conversation</h3>
             
-            {!sessionData.messages || sessionData.messages.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                No messages yet. Start a conversation to get coaching.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {sessionData.messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.isUserMessage ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-3/4 rounded-2xl px-4 py-2 ${
-                      message.isUserMessage 
-                        ? 'bg-emotion-passionate text-white' 
-                        : 'bg-gray-700 text-white'
-                    }`}>
-                      {message.content}
+            <div ref={messageContainerRef} className="h-[400px] overflow-y-auto mb-4 bg-background border border-border/30 rounded-lg p-4">
+              {!sessionData.messages || sessionData.messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground py-8">
+                  <UserPlus2 className="h-12 w-12 mb-4 text-muted-foreground/60" />
+                  <p className="text-lg">No messages yet</p>
+                  <p className="text-sm max-w-sm">Start a conversation to get relationship coaching from your AI therapist.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Welcome message always shown at the start of a session */}
+                  <div className="flex justify-start mb-6">
+                    <div className="flex items-start max-w-[75%]">
+                      <div className="bg-emotion-peaceful/20 border border-emotion-peaceful/30 rounded-2xl px-4 py-3 text-white">
+                        <p className="font-medium mb-1">Welcome to your coaching session</p>
+                        <p>Hi there! I'm your relationship coach. I'm here to listen and provide guidance based on your needs. Feel free to share what's on your mind about your relationship, and we can work through it together.</p>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+
+                  {/* Actual conversation messages */}
+                  {sessionData.messages.map((message) => (
+                    <div key={message.id} className={`flex ${message.isUserMessage ? 'justify-end' : 'justify-start'} mb-3`}>
+                      {!message.isUserMessage && (
+                        <div className="h-8 w-8 rounded-full bg-emotion-peaceful/30 flex items-center justify-center mr-2 mt-1">
+                          <Heart className="h-4 w-4 text-emotion-peaceful" />
+                        </div>
+                      )}
+                      <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                        message.isUserMessage 
+                          ? 'bg-emotion-passionate text-white rounded-tr-none' 
+                          : 'bg-gray-700 text-white rounded-tl-none'
+                      }`}>
+                        {message.content}
+                        <div className={`text-xs mt-1 ${message.isUserMessage ? 'text-white/70 text-right' : 'text-white/70'}`}>
+                          {message.createdAt 
+                            ? format(new Date(message.createdAt), 'h:mm a')
+                            : format(new Date(), 'h:mm a')}
+                        </div>
+                      </div>
+                      {message.isUserMessage && (
+                        <div className="h-8 w-8 rounded-full bg-emotion-passionate/30 flex items-center justify-center ml-2 mt-1">
+                          <User className="h-4 w-4 text-emotion-passionate" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {/* Typing indicator when message is being sent */}
+                  {sendMessageMutation.isPending && (
+                    <div className="flex justify-start">
+                      <div className="h-8 w-8 rounded-full bg-emotion-peaceful/30 flex items-center justify-center mr-2">
+                        <Heart className="h-4 w-4 text-emotion-peaceful" />
+                      </div>
+                      <div className="bg-gray-700 text-white rounded-2xl px-4 py-2 rounded-tl-none">
+                        <div className="flex space-x-1">
+                          <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                          <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                          <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "600ms" }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             
             <div className="mt-6">
               <form className="flex items-center space-x-2" onSubmit={handleSendMessage}>
