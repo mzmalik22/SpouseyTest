@@ -6,6 +6,9 @@ export interface User {
   lastName?: string;
   partnerId?: number;
   inviteCode?: string;
+  maritalStatus?: string;
+  relationshipCondition?: string;
+  onboardingCompleted?: boolean;
 }
 
 export interface Message {

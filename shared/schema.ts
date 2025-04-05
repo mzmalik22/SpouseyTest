@@ -2,6 +2,10 @@ import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Enum values for marital status and relationship condition
+export const maritalStatusValues = ['single', 'dating', 'engaged', 'married', 'divorced', 'widowed'] as const;
+export const relationshipConditionValues = ['critical', 'stable', 'improving'] as const;
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -11,6 +15,9 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   partnerId: integer("partner_id").references(() => users.id),
   inviteCode: text("invite_code").unique(),
+  maritalStatus: text("marital_status"),  // Will be one of maritalStatusValues
+  relationshipCondition: text("relationship_condition"), // Will be one of relationshipConditionValues
+  onboardingCompleted: boolean("onboarding_completed").default(false),
 });
 
 export const messages = pgTable("messages", {
@@ -54,6 +61,9 @@ export const insertCoachingContentSchema = createInsertSchema(coachingContents).
 export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, timestamp: true });
 
 // Types
+export type MaritalStatus = typeof maritalStatusValues[number];
+export type RelationshipCondition = typeof relationshipConditionValues[number];
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;

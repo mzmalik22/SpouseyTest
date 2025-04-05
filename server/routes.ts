@@ -308,6 +308,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Onboarding route
+  app.post("/api/onboarding", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    const { maritalStatus, relationshipCondition } = req.body;
+    
+    if (!maritalStatus || !relationshipCondition) {
+      return res.status(400).json({ message: "Marital status and relationship condition are required" });
+    }
+    
+    try {
+      const updatedUser = await storage.updateUser(currentUser.id, {
+        maritalStatus,
+        relationshipCondition,
+        onboardingCompleted: true
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create activity for completing onboarding
+      await storage.createActivity({
+        userId: currentUser.id,
+        type: "onboarding",
+        description: `Completed onboarding - ${maritalStatus}, relationship is ${relationshipCondition}`
+      });
+      
+      // Return updated user without password
+      const { password, ...userWithoutPassword } = updatedUser;
+      return res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Onboarding error:", error);
+      return res.status(500).json({ message: "Failed to complete onboarding" });
+    }
+  });
+
   // Activities routes
   app.get("/api/activities", async (req, res) => {
     if (!req.isAuthenticated()) {

@@ -8,6 +8,7 @@ import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import Messages from "@/pages/messages";
 import Coaching from "@/pages/coaching";
+import Onboarding from "@/pages/onboarding";
 import { useAuth, AuthProvider } from "./context/auth-context";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
@@ -62,14 +63,31 @@ function Router() {
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
+    // Skip all redirects if loading
+    if (loading) return;
+    
     // Redirect to login if not authenticated
-    if (!loading && !user && location !== "/login" && location !== "/register") {
+    if (!user && location !== "/login" && location !== "/register") {
       setLocation("/login");
+      return;
     }
 
     // Redirect to dashboard if already authenticated and trying to access login/register
-    if (!loading && user && (location === "/login" || location === "/register")) {
+    if (user && (location === "/login" || location === "/register")) {
       setLocation("/");
+      return;
+    }
+    
+    // Redirect to onboarding if authenticated but onboarding not completed
+    if (user && !user.onboardingCompleted && location !== "/onboarding") {
+      setLocation("/onboarding");
+      return;
+    }
+    
+    // Redirect to dashboard if onboarding is completed but trying to access onboarding
+    if (user && user.onboardingCompleted && location === "/onboarding") {
+      setLocation("/");
+      return;
     }
   }, [user, loading, location, setLocation]);
 
@@ -82,13 +100,14 @@ function Router() {
   }
 
   // Determine if current page is an auth page
-  const isAuthPage = location === "/login" || location === "/register";
+  const isAuthPage = location === "/login" || location === "/register" || location === "/onboarding";
 
   return (
     <AppLayout isAuthPage={isAuthPage}>
       <Switch>
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/onboarding" component={Onboarding} />
         <Route path="/" component={Dashboard} />
         <Route path="/messages" component={Messages} />
         <Route path="/coaching" component={Coaching} />
