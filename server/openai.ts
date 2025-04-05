@@ -5,10 +5,25 @@ if (!process.env.OPENAI_API_KEY) {
   console.warn("OPENAI_API_KEY environment variable is not set. Message refinement will not work.");
 }
 
-// Initialize OpenAI client 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client with runtime check for API key
+function createOpenAIClient() {
+  // Check if API key is available
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn("OPENAI_API_KEY environment variable is not set. Message refinement will fallback to original messages.");
+    return null;
+  }
+  
+  try {
+    return new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  } catch (error) {
+    console.error("Failed to initialize OpenAI client:", error);
+    return null;
+  }
+}
+
+const openai = createOpenAIClient();
 
 // Map of vibe types to prompt instructions
 const vibePrompts: Record<string, string> = {
@@ -44,10 +59,10 @@ export interface RefinedMessagesResponse {
  * @returns The refined message text
  */
 export async function refineMessage(message: string, vibe: string): Promise<string> {
-  // If no vibe selected, message is empty, or API key is missing, return the original
-  if (!message || !vibe || !vibePrompts[vibe.toLowerCase()] || !process.env.OPENAI_API_KEY) {
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn("Message refinement skipped: OPENAI_API_KEY not set");
+  // If no vibe selected, message is empty, or OpenAI client is not available, return the original
+  if (!message || !vibe || !vibePrompts[vibe.toLowerCase()] || !openai) {
+    if (!openai) {
+      console.warn("Message refinement skipped: OpenAI client not available");
     }
     return message;
   }
@@ -68,6 +83,10 @@ Do not include any explanation, just respond with the refined message text.
 `;
 
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    if (!openai) {
+      throw new Error("OpenAI client is not available");
+    }
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
@@ -91,15 +110,23 @@ Do not include any explanation, just respond with the refined message text.
  * @returns Object containing refined messages for each vibe
  */
 export async function refineMessageAllVibes(message: string): Promise<RefinedMessagesResponse> {
-  // If message is empty or API key is missing, return an error
-  if (!message || !process.env.OPENAI_API_KEY) {
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn("Message refinement skipped: OPENAI_API_KEY not set");
+  // If message is empty or OpenAI client is not available, return an error
+  if (!message || !openai) {
+    if (!openai) {
+      console.warn("Message refinement skipped: OpenAI client not available");
+      
+      // Create fallback responses using the original message
+      const fallbackMessages: {[key: string]: string} = {};
+      Object.keys(vibePrompts).forEach(vibe => {
+        fallbackMessages[vibe] = message || "";
+      });
+      
       return { 
-        refinedMessages: {},
-        error: "API key not configured"
+        refinedMessages: fallbackMessages,
+        error: "OpenAI client not available"
       };
     }
+    
     return { 
       refinedMessages: {},
       error: "Message is empty"
@@ -142,6 +169,10 @@ The refined messages should:
 `;
 
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    if (!openai) {
+      throw new Error("OpenAI client is not available");
+    }
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],

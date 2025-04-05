@@ -120,11 +120,27 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
       // If there's an API error like quota exceeded
       if (data.error) {
         console.warn("API error:", data.error);
-        toast({
-          variant: "destructive",
-          title: "OpenAI API Error",
-          description: "Original message will be used for all vibes. This may be due to reaching API limits.",
-        });
+        
+        // Different toast messages based on the specific error
+        if (data.error.includes("API key")) {
+          toast({
+            variant: "destructive",
+            title: "OpenAI API Configuration Issue",
+            description: "The app's message enhancement feature is temporarily unavailable. Your original message will still be sent.",
+          });
+        } else if (data.error.includes("quota") || data.error.includes("limit")) {
+          toast({
+            variant: "destructive",
+            title: "OpenAI API Quota Reached",
+            description: "The message enhancement quota has been reached. Your original message will still be sent.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Message Enhancement Unavailable",
+            description: "Your original message will be used for all vibes. The enhancement service is temporarily unavailable.",
+          });
+        }
         
         // Create fallback messages using the original message for all vibes
         const fallbackMessages = vibeOptions.reduce((acc, vibe) => {
@@ -171,12 +187,27 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     }
   };
   
-  // Helper for consistent error handling
+  // Helper for consistent error handling with improved error messages
   const handleRefinementError = (errorMessage: string) => {
+    // Determine appropriate error message based on error content
+    let toastTitle = "Message refinement unavailable";
+    let toastDescription = "Using your original message instead.";
+    
+    if (errorMessage.includes("API key") || errorMessage.includes("configuration")) {
+      toastTitle = "OpenAI API configuration issue";
+      toastDescription = "The message enhancement feature is temporarily unavailable.";
+    } else if (errorMessage.includes("quota") || errorMessage.includes("limit")) {
+      toastTitle = "Enhancement quota reached";
+      toastDescription = "Message enhancement is temporarily limited. Your original message will be used.";
+    } else if (errorMessage.includes("Empty") || errorMessage.includes("no content")) {
+      toastTitle = "Empty message";
+      toastDescription = "Please enter a message to send.";
+    }
+    
     toast({
       variant: "destructive",
-      title: "Message refinement failed",
-      description: errorMessage,
+      title: toastTitle,
+      description: toastDescription,
     });
     
     // Create fallback messages using the original message

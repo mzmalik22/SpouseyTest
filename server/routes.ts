@@ -305,13 +305,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error refining message with OpenAI:", error);
       
-      // Handle OpenAI API quota exceeded error
+      // More specific error handling based on error type
       let errorMessage = "Failed to refine message";
-      if (error.code === 'insufficient_quota') {
+      
+      if (!process.env.OPENAI_API_KEY) {
+        errorMessage = "OpenAI API key not configured. Using original message instead.";
+      } else if (error.code === 'insufficient_quota') {
         errorMessage = "OpenAI API quota exceeded. Using original message instead.";
+      } else if (error.status === 429) {
+        errorMessage = "OpenAI API rate limit reached. Using original message instead.";
+      } else if (error.message && error.message.includes("API key")) {
+        errorMessage = "OpenAI API key configuration issue. Using original message instead.";
       }
       
-      // Return the original message as fallback with a warning
+      // Return the original message as fallback with a specific warning
       return res.status(200).json({ 
         refinedMessage: message,
         error: errorMessage
@@ -337,10 +344,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error refining message for all vibes:", error);
       
-      // Handle OpenAI API quota exceeded error
+      // More comprehensive error handling
       let errorMessage = "Failed to refine message for all vibes";
-      if (error.code === 'insufficient_quota') {
-        errorMessage = "OpenAI API quota exceeded. Please try again later.";
+      
+      if (!process.env.OPENAI_API_KEY) {
+        errorMessage = "OpenAI API key not configured. Using original messages instead.";
+      } else if (error.code === 'insufficient_quota') {
+        errorMessage = "OpenAI API quota exceeded. Using original messages instead.";
+      } else if (error.status === 429) {
+        errorMessage = "OpenAI API rate limit reached. Using original messages instead.";
+      } else if (error.message && error.message.includes("API key")) {
+        errorMessage = "OpenAI API key configuration issue. Using original messages instead.";
       }
       
       // Create a default response with the original message for each vibe
