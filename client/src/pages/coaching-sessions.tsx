@@ -148,20 +148,21 @@ export default function CoachingSessions() {
   };
   
   // If viewing a specific session
-  if (sessionId && !sessionLoading && sessionData) {
+  if (sessionId && !sessionLoading && sessionData && sessionData.session) {
     return (
       <div className="h-full min-h-screen flex flex-col bg-black">
         <Navbar />
         
         <div className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center mb-6">
-            <Link href="/coaching-sessions">
-              <a className="mr-4 text-muted-foreground hover:text-white">
+            <button 
+              onClick={() => setLocation('/coaching-sessions')}
+              className="mr-4 text-muted-foreground hover:text-white"
+            >
                 <ArrowLeft className="h-5 w-5" />
-              </a>
-            </Link>
+            </button>
             <h2 className="text-xl font-semibold text-white">
-              {sessionData.session.title}
+              {sessionData.session?.title || "Coaching Session"}
             </h2>
           </div>
           
@@ -180,13 +181,15 @@ export default function CoachingSessions() {
                 <span className="text-sm text-muted-foreground">Status:</span>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className={`px-2 py-1 rounded-full text-xs ${
-                    sessionData.session.status === 'active' 
+                    sessionData.session?.status === 'active' 
                       ? 'bg-green-900/20 text-green-500' 
-                      : sessionData.session.status === 'completed'
+                      : sessionData.session?.status === 'completed'
                         ? 'bg-blue-900/20 text-blue-500'
                         : 'bg-gray-900/20 text-gray-500'
                   }`}>
-                    {sessionData.session.status && sessionData.session.status.charAt(0).toUpperCase() + sessionData.session.status.slice(1) || 'Active'}
+                    {sessionData.session?.status 
+                      ? sessionData.session.status.charAt(0).toUpperCase() + sessionData.session.status.slice(1) 
+                      : 'Active'}
                   </span>
                 </div>
               </div>
@@ -196,7 +199,7 @@ export default function CoachingSessions() {
                 <div className="flex items-center space-x-2 mt-1">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-white">
-                    {new Date(sessionData.session.createdAt).toLocaleDateString()}
+                    {sessionData.session?.createdAt ? new Date(sessionData.session.createdAt).toLocaleDateString() : 'Just now'}
                   </span>
                 </div>
               </div>
@@ -206,7 +209,9 @@ export default function CoachingSessions() {
                 <div className="flex items-center space-x-2 mt-1">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-white">
-                    {formatDistanceToNow(new Date(sessionData.session.lastMessageAt), { addSuffix: true })}
+                    {sessionData.session?.lastMessageAt 
+                      ? formatDistanceToNow(new Date(sessionData.session.lastMessageAt), { addSuffix: true })
+                      : 'Just now'}
                   </span>
                 </div>
               </div>
@@ -216,7 +221,7 @@ export default function CoachingSessions() {
           <div className="bg-muted rounded-2xl border border-border p-6">
             <h3 className="text-lg font-medium text-white mb-4">Conversation</h3>
             
-            {sessionData.messages.length === 0 ? (
+            {!sessionData.messages || sessionData.messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 No messages yet. Start a conversation to get coaching.
               </div>
@@ -274,11 +279,12 @@ export default function CoachingSessions() {
       <div className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <Link href="/coaching">
-              <a className="mr-4 text-muted-foreground hover:text-white">
+            <button 
+              onClick={() => setLocation('/')}
+              className="mr-4 text-muted-foreground hover:text-white"
+            >
                 <ArrowLeft className="h-5 w-5" />
-              </a>
-            </Link>
+            </button>
             <h2 className="text-xl font-semibold text-white">Coaching Sessions</h2>
           </div>
           
