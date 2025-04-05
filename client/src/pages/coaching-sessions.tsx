@@ -218,155 +218,226 @@ export default function CoachingSessions() {
       <div className="h-full min-h-screen flex flex-col bg-black">
         <Navbar />
         
-        <div className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center mb-6">
-            <button 
-              onClick={() => setLocation('/coaching-sessions')}
-              className="mr-4 text-muted-foreground hover:text-white"
-            >
-                <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h2 className="text-xl font-semibold text-white">
-              {sessionData.session?.title || "Coaching Session"}
-            </h2>
-          </div>
-          
-          <div className="bg-muted rounded-2xl border border-border p-3 mb-4 text-sm">
-            <div className="flex flex-wrap gap-4 items-center">
-              {sessionData.topic && (
-                <div className="flex items-center">
-                  <span className="text-muted-foreground mr-1">Topic:</span>
-                  <span className="text-white">{sessionData.topic.title}</span>
+        <div className="flex-1 flex max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Sidebar with sessions list */}
+          <div className="w-64 mr-6 hidden md:block">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Your Sessions</h3>
+              <Button 
+                size="sm"
+                variant="ghost"
+                onClick={() => setLocation('/coaching-sessions')}
+                className="text-muted-foreground hover:text-white"
+              >
+                <ListIcon className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Sessions list in sidebar */}
+            <div className="space-y-2 max-h-[80vh] overflow-y-auto pr-2">
+              {sessions && sessions.map((session) => (
+                <div 
+                  key={session.id}
+                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                    session.id === parseInt(sessionId) 
+                      ? 'bg-muted border-emotion-peaceful' 
+                      : 'bg-background border-border hover:border-border/80'
+                  }`}
+                  onClick={() => setLocation(`/coaching-sessions/${session.id}`)}
+                >
+                  <div className="font-medium text-white text-sm mb-1 truncate">{session.title}</div>
+                  <div className="flex items-center justify-between">
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${
+                      session.status === 'active' 
+                        ? 'bg-green-900/20 text-green-500' 
+                        : session.status === 'completed'
+                          ? 'bg-blue-900/20 text-blue-500'
+                          : 'bg-gray-900/20 text-gray-500'
+                    }`}>
+                      {session.status ? session.status.charAt(0).toUpperCase() + session.status.slice(1) : 'Active'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {session.lastMessageAt 
+                        ? formatDistanceToNow(new Date(session.lastMessageAt), { addSuffix: true })
+                        : 'Just now'}
+                    </span>
+                  </div>
                 </div>
-              )}
+              ))}
               
-              <div className="flex items-center">
-                <span className="text-muted-foreground mr-1">Status:</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  sessionData.session?.status === 'active' 
-                    ? 'bg-green-900/20 text-green-500' 
-                    : sessionData.session?.status === 'completed'
-                      ? 'bg-blue-900/20 text-blue-500'
-                      : 'bg-gray-900/20 text-gray-500'
-                }`}>
-                  {sessionData.session?.status 
-                    ? `${sessionData.session.status.charAt(0).toUpperCase()}${sessionData.session.status.slice(1)}` 
-                    : 'Active'}
-                </span>
-              </div>
-              
-              <div className="flex items-center">
-                <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
-                <span className="text-muted-foreground mr-1">Created:</span>
-                <span className="text-white">
-                  {sessionData.session?.createdAt ? new Date(sessionData.session.createdAt).toLocaleDateString() : 'Today'}
-                </span>
-              </div>
-              
-              <div className="flex items-center">
-                <Clock className="h-3 w-3 text-muted-foreground mr-1" />
-                <span className="text-muted-foreground mr-1">Last activity:</span>
-                <span className="text-white">
-                  {sessionData.session?.lastMessageAt 
-                    ? formatDistanceToNow(new Date(sessionData.session.lastMessageAt), { addSuffix: true })
-                    : 'Just now'}
-                </span>
-              </div>
+              {/* New session button in sidebar */}
+              <Button 
+                variant="outline" 
+                className="w-full mt-4 border-dashed border-border hover:border-emotion-peaceful"
+                onClick={() => setNewSessionOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Session
+              </Button>
             </div>
           </div>
           
-          <div className="bg-muted rounded-2xl border border-border p-6">
-            <h3 className="text-lg font-medium text-white mb-4">Conversation</h3>
+          {/* Main chat area */}
+          <div className="flex-1 flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <button 
+                  onClick={() => setLocation('/coaching-sessions')}
+                  className="md:hidden mr-4 text-muted-foreground hover:text-white"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
+                <h2 className="text-xl font-semibold text-white">
+                  {sessionData.session?.title || "Coaching Session"}
+                </h2>
+              </div>
+              
+              {/* Mobile menu button */}
+              <Button
+                variant="ghost" 
+                size="sm"
+                className="md:hidden"
+                onClick={() => setLocation('/coaching-sessions')}
+              >
+                <List className="h-5 w-5" />
+              </Button>
+            </div>
             
-            <div ref={messageContainerRef} className="h-[400px] overflow-y-auto mb-4 bg-background border border-border/30 rounded-lg p-4">
-              {!sessionData.messages || sessionData.messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground py-8">
-                  <UserPlus2 className="h-12 w-12 mb-4 text-muted-foreground/60" />
-                  <p className="text-lg">No messages yet</p>
-                  <p className="text-sm max-w-sm">Start a conversation to get relationship coaching from your AI therapist.</p>
+            <div className="bg-muted rounded-2xl border border-border p-3 mb-4 text-sm">
+              <div className="flex flex-wrap gap-4 items-center">
+                {sessionData.topic && (
+                  <div className="flex items-center">
+                    <span className="text-muted-foreground mr-1">Topic:</span>
+                    <span className="text-white">{sessionData.topic.title}</span>
+                  </div>
+                )}
+                
+                <div className="flex items-center">
+                  <span className="text-muted-foreground mr-1">Status:</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs ${
+                    sessionData.session?.status === 'active' 
+                      ? 'bg-green-900/20 text-green-500' 
+                      : sessionData.session?.status === 'completed'
+                        ? 'bg-blue-900/20 text-blue-500'
+                        : 'bg-gray-900/20 text-gray-500'
+                  }`}>
+                    {sessionData.session?.status 
+                      ? `${sessionData.session.status.charAt(0).toUpperCase()}${sessionData.session.status.slice(1)}` 
+                      : 'Active'}
+                  </span>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Welcome message always shown at the start of a session */}
-                  <div className="flex justify-start mb-6">
-                    <div className="flex items-start max-w-[75%]">
-                      <div className="bg-emotion-peaceful/20 border border-emotion-peaceful/30 rounded-2xl px-4 py-3 text-white">
-                        <p className="font-medium mb-1">Welcome to your coaching session</p>
-                        <p>Hi there! I'm your relationship coach. I'm here to listen and provide guidance based on your needs. Feel free to share what's on your mind about your relationship, and we can work through it together.</p>
+                
+                <div className="flex items-center">
+                  <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
+                  <span className="text-muted-foreground mr-1">Created:</span>
+                  <span className="text-white">
+                    {sessionData.session?.createdAt ? new Date(sessionData.session.createdAt).toLocaleDateString() : 'Today'}
+                  </span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Clock className="h-3 w-3 text-muted-foreground mr-1" />
+                  <span className="text-muted-foreground mr-1">Last activity:</span>
+                  <span className="text-white">
+                    {sessionData.session?.lastMessageAt 
+                      ? formatDistanceToNow(new Date(sessionData.session.lastMessageAt), { addSuffix: true })
+                      : 'Just now'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-muted rounded-2xl border border-border p-6 flex-1 flex flex-col">
+              <div ref={messageContainerRef} className="flex-1 overflow-y-auto mb-4 bg-background border border-border/30 rounded-lg p-4 min-h-[400px]">
+                {!sessionData.messages || sessionData.messages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground py-8">
+                    <UserPlus2 className="h-12 w-12 mb-4 text-muted-foreground/60" />
+                    <p className="text-lg">No messages yet</p>
+                    <p className="text-sm max-w-sm">Start a conversation to get relationship coaching from your AI therapist.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Welcome message always shown at the start of a session */}
+                    <div className="flex justify-start mb-6">
+                      <div className="flex items-start max-w-[75%]">
+                        <div className="bg-emotion-peaceful/20 border border-emotion-peaceful/30 rounded-2xl px-4 py-3 text-white">
+                          <p className="font-medium mb-1">Welcome to your coaching session</p>
+                          <p>Hi there! I'm your relationship coach. I'm here to listen and provide guidance based on your needs. Feel free to share what's on your mind about your relationship, and we can work through it together.</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Actual conversation messages */}
-                  {sessionData.messages.map((message) => (
-                    <div key={message.id} className={`flex ${message.isUserMessage ? 'justify-end' : 'justify-start'} mb-3`}>
-                      {!message.isUserMessage && (
-                        <div className="h-8 w-8 rounded-full bg-emotion-peaceful/30 flex items-center justify-center mr-2 mt-1">
+                    {/* Actual conversation messages */}
+                    {sessionData.messages.map((message) => (
+                      <div key={message.id} className={`flex ${message.isUserMessage ? 'justify-end' : 'justify-start'} mb-3`}>
+                        {!message.isUserMessage && (
+                          <div className="h-8 w-8 rounded-full bg-emotion-peaceful/30 flex items-center justify-center mr-2 mt-1">
+                            <Heart className="h-4 w-4 text-emotion-peaceful" />
+                          </div>
+                        )}
+                        <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                          message.isUserMessage 
+                            ? 'bg-emotion-passionate text-white rounded-tr-none' 
+                            : 'bg-gray-700 text-white rounded-tl-none'
+                        }`}>
+                          {message.content}
+                          <div className={`text-xs mt-1 ${message.isUserMessage ? 'text-white/70 text-right' : 'text-white/70'}`}>
+                            {message.createdAt 
+                              ? format(new Date(message.createdAt), 'h:mm a')
+                              : format(new Date(), 'h:mm a')}
+                          </div>
+                        </div>
+                        {message.isUserMessage && (
+                          <div className="h-8 w-8 rounded-full bg-emotion-passionate/30 flex items-center justify-center ml-2 mt-1">
+                            <User className="h-4 w-4 text-emotion-passionate" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {/* Typing indicator when message is being sent */}
+                    {sendMessageMutation.isPending && (
+                      <div className="flex justify-start">
+                        <div className="h-8 w-8 rounded-full bg-emotion-peaceful/30 flex items-center justify-center mr-2">
                           <Heart className="h-4 w-4 text-emotion-peaceful" />
                         </div>
-                      )}
-                      <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                        message.isUserMessage 
-                          ? 'bg-emotion-passionate text-white rounded-tr-none' 
-                          : 'bg-gray-700 text-white rounded-tl-none'
-                      }`}>
-                        {message.content}
-                        <div className={`text-xs mt-1 ${message.isUserMessage ? 'text-white/70 text-right' : 'text-white/70'}`}>
-                          {message.createdAt 
-                            ? format(new Date(message.createdAt), 'h:mm a')
-                            : format(new Date(), 'h:mm a')}
+                        <div className="bg-gray-700 text-white rounded-2xl px-4 py-2 rounded-tl-none">
+                          <div className="flex space-x-1">
+                            <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                            <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                            <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "600ms" }}></div>
+                          </div>
                         </div>
                       </div>
-                      {message.isUserMessage && (
-                        <div className="h-8 w-8 rounded-full bg-emotion-passionate/30 flex items-center justify-center ml-2 mt-1">
-                          <User className="h-4 w-4 text-emotion-passionate" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  
-                  {/* Typing indicator when message is being sent */}
-                  {sendMessageMutation.isPending && (
-                    <div className="flex justify-start">
-                      <div className="h-8 w-8 rounded-full bg-emotion-peaceful/30 flex items-center justify-center mr-2">
-                        <Heart className="h-4 w-4 text-emotion-peaceful" />
-                      </div>
-                      <div className="bg-gray-700 text-white rounded-2xl px-4 py-2 rounded-tl-none">
-                        <div className="flex space-x-1">
-                          <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                          <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "300ms" }}></div>
-                          <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "600ms" }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            <div className="mt-6">
-              <form className="flex items-center space-x-2" onSubmit={handleSendMessage}>
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  className="flex-1 rounded-lg bg-background px-4 py-2 text-white border border-border focus:outline-none focus:ring-2 focus:ring-emotion-peaceful"
-                />
-                <Button 
-                  type="submit" 
-                  variant="default" 
-                  size="icon" 
-                  className="bg-emotion-peaceful hover:bg-emotion-peaceful/90"
-                  disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                >
-                  {sendMessageMutation.isPending ? (
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-current" />
-                  ) : (
-                    <MessageCircle className="h-5 w-5" />
-                  )}
-                </Button>
-              </form>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-auto">
+                <form className="flex items-center space-x-2" onSubmit={handleSendMessage}>
+                  <input
+                    type="text"
+                    placeholder="Type a message to the AI therapist..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    className="flex-1 rounded-lg bg-background px-4 py-2 text-white border border-border focus:outline-none focus:ring-2 focus:ring-emotion-peaceful"
+                  />
+                  <Button 
+                    type="submit" 
+                    variant="default" 
+                    size="icon" 
+                    className="bg-emotion-peaceful hover:bg-emotion-peaceful/90"
+                    disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                  >
+                    {sendMessageMutation.isPending ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-current" />
+                    ) : (
+                      <MessageCircle className="h-5 w-5" />
+                    )}
+                  </Button>
+                </form>
+              </div>
             </div>
           </div>
         </div>
