@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Facebook, Mail, X } from "lucide-react";
-import { FaWhatsapp } from "react-icons/fa";
+import { Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
 import { apiRequest } from "@/lib/queryClient";
@@ -53,31 +52,13 @@ export default function PartnerInviteModal({ isOpen, onClose }: PartnerInviteMod
     });
   };
 
-  const shareViaEmail = () => {
-    const link = `${window.location.origin}/invite/${inviteCode}`;
-    const subject = "Join me on Spousey.ai";
-    const body = `I'd like to connect with you on Spousey.ai, a relationship wellness app. Join me using this link: ${link}`;
-    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-  };
-
-  const shareViaWhatsApp = () => {
-    const link = `${window.location.origin}/invite/${inviteCode}`;
-    const text = `I'd like to connect with you on Spousey.ai, a relationship wellness app. Join me using this link: ${link}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
-  };
-
-  const shareViaMessenger = () => {
-    const link = `${window.location.origin}/invite/${inviteCode}`;
-    window.open(`https://www.facebook.com/dialog/send?link=${encodeURIComponent(link)}&app_id=123456789`);
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md rounded-2xl bg-muted border-border">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-white">Invite Your Partner</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Generate a unique link to invite your partner to join you on Spousey.ai.
+            Generate a unique link to invite your partner to join you on Spousey.
           </DialogDescription>
         </DialogHeader>
         <div className="bg-muted-foreground/10 rounded-xl p-4 mb-4 border border-border">
@@ -109,35 +90,9 @@ export default function PartnerInviteModal({ isOpen, onClose }: PartnerInviteMod
 
         {inviteCode && (
           <div className="mb-6">
-            <h4 className="font-medium text-white mb-2">Share via:</h4>
-            <div className="flex space-x-3">
-              <Button
-                onClick={shareViaMessenger}
-                variant="outline"
-                className="flex-1 gap-2 text-blue-400 hover:text-blue-300 border-border bg-muted"
-              >
-                <Facebook className="h-4 w-4" />
-                <span className="sr-only sm:not-sr-only sm:text-xs">Messenger</span>
-              </Button>
-
-              <Button
-                onClick={shareViaWhatsApp}
-                variant="outline"
-                className="flex-1 gap-2 text-green-400 hover:text-green-300 border-border bg-muted"
-              >
-                <FaWhatsapp className="h-4 w-4" />
-                <span className="sr-only sm:not-sr-only sm:text-xs">WhatsApp</span>
-              </Button>
-
-              <Button
-                onClick={shareViaEmail}
-                variant="outline"
-                className="flex-1 gap-2 text-white hover:text-white/80 border-border bg-muted"
-              >
-                <Mail className="h-4 w-4" />
-                <span className="sr-only sm:not-sr-only sm:text-xs">Email</span>
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground mb-2">
+              Share this unique link with your partner to connect on Spousey.
+            </p>
           </div>
         )}
 
