@@ -33,24 +33,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await storage.getUserByUsername(username);
-        
-        if (!user) {
-          return done(null, false, { message: "Incorrect username." });
+    new LocalStrategy(
+      {
+        usernameField: 'email',
+        passwordField: 'password'
+      },
+      async (email, password, done) => {
+        try {
+          const user = await storage.getUserByEmail(email);
+          
+          if (!user) {
+            return done(null, false, { message: "Incorrect email." });
+          }
+          
+          // In a real app, we would hash the password
+          if (user.password !== password) {
+            return done(null, false, { message: "Incorrect password." });
+          }
+          
+          return done(null, user);
+        } catch (err) {
+          return done(err);
         }
-        
-        // In a real app, we would hash the password
-        if (user.password !== password) {
-          return done(null, false, { message: "Incorrect password." });
-        }
-        
-        return done(null, user);
-      } catch (err) {
-        return done(err);
       }
-    })
+    )
   );
 
   passport.serializeUser((user: any, done) => {
@@ -71,12 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userData = insertUserSchema.parse(req.body);
       
-      // Check if user already exists
-      const existingUser = await storage.getUserByUsername(userData.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-      
+      // Check if email already exists
       const emailExists = await storage.getUserByEmail(userData.email);
       if (emailExists) {
         return res.status(400).json({ message: "Email already exists" });

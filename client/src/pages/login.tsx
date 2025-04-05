@@ -11,7 +11,7 @@ import { useAuth } from "@/context/auth-context";
 import { Heart } from "lucide-react";
 
 const loginSchema = z.object({
-  username: z.string().min(1, { message: "Username is required" }),
+  email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
   rememberMe: z.boolean().optional(),
 });
@@ -25,7 +25,7 @@ export default function Login() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
       rememberMe: false,
     },
@@ -34,7 +34,7 @@ export default function Login() {
   const onSubmit = async (values: LoginFormValues) => {
     try {
       setIsLoading(true);
-      await login(values.username, values.password);
+      await login(values.email, values.password);
     } catch (error) {
       console.error("Login failed:", error);
     } finally {
@@ -57,14 +57,15 @@ export default function Login() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="username"
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-gray-700">Username</FormLabel>
+                  <FormLabel className="text-gray-700">Email</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
-                      placeholder="Enter your username"
+                      type="email"
+                      placeholder="Enter your email address"
                       className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
                       disabled={isLoading}
                     />

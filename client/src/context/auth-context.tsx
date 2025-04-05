@@ -6,7 +6,7 @@ import { User } from "@/lib/types";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -45,21 +45,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const response = await apiRequest("POST", "/api/auth/login", { username, password });
+      const response = await apiRequest("POST", "/api/auth/login", { email, password });
       const userData = await response.json();
       setUser(userData);
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${userData.firstName || userData.username}!`,
+        description: `Welcome back, ${userData.firstName || userData.email}!`,
       });
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message || "Invalid username or password",
+        description: error.message || "Invalid email or password",
       });
       throw error;
     } finally {
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(newUser);
       toast({
         title: "Registration Successful",
-        description: `Welcome to Spousey.ai, ${newUser.firstName || newUser.username}!`,
+        description: `Welcome to Spousey.ai, ${newUser.firstName || newUser.email}!`,
       });
     } catch (error) {
       toast({
