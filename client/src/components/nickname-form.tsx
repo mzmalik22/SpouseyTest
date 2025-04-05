@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/context/auth-context";
 import { queryClient } from "@/lib/queryClient";
 import { User } from "@/lib/types";
-import { HeartHandshake, Plus } from "lucide-react";
+import { HeartHandshake, Plus, X } from "lucide-react";
 
 interface NicknameFormProps {
   onSaved?: () => void;
@@ -28,20 +28,53 @@ const NICKNAME_SUGGESTIONS = [
 export default function NicknameForm({ onSaved }: NicknameFormProps) {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
-  const [partnerNickname, setPartnerNickname] = useState(user?.partnerNickname || "");
+  const [nicknames, setNicknames] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   
+  // Initialize nicknames from user data
+  useEffect(() => {
+    if (user?.partnerNickname) {
+      // Split by comma if there are multiple nicknames stored
+      const savedNicknames = user.partnerNickname.split(',').map(n => n.trim()).filter(Boolean);
+      setNicknames(savedNicknames);
+    }
+  }, [user?.partnerNickname]);
+  
   const handleSuggestionClick = (suggestion: string) => {
-    setPartnerNickname(suggestion);
+    if (!nicknames.includes(suggestion)) {
+      setNicknames([...nicknames, suggestion]);
+    }
+    setInputValue("");
+  };
+  
+  const handleAddNickname = () => {
+    if (inputValue.trim() && !nicknames.includes(inputValue.trim())) {
+      setNicknames([...nicknames, inputValue.trim()]);
+      setInputValue("");
+    }
+  };
+  
+  const handleRemoveNickname = (index: number) => {
+    const newNicknames = [...nicknames];
+    newNicknames.splice(index, 1);
+    setNicknames(newNicknames);
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && inputValue.trim()) {
+      e.preventDefault();
+      handleAddNickname();
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!partnerNickname.trim()) {
+    if (nicknames.length === 0) {
       toast({
-        title: "Please enter a nickname",
-        description: "You need to provide a nickname for your partner",
+        title: "Please add at least one nickname",
+        description: "You need to provide at least one nickname for your partner",
         variant: "destructive",
       });
       return;
@@ -50,9 +83,12 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
     try {
       setIsSaving(true);
       
+      // Join multiple nicknames with commas
+      const partnerNickname = nicknames.join(', ');
+      
       // Set a default nickname for yourself if not already set
       const payload: { partnerNickname: string; nickname?: string } = {
-        partnerNickname: partnerNickname.trim()
+        partnerNickname
       };
       
       // Keep existing self nickname if present
@@ -75,8 +111,8 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
       }
       
       toast({
-        title: "Nickname saved",
-        description: `Your partner will be called "${partnerNickname}" in messages`,
+        title: "Nicknames saved",
+        description: `Partner nicknames have been updated successfully`,
         variant: "default",
       });
       
@@ -86,7 +122,7 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
     } catch (error) {
       console.error("Error saving nicknames:", error);
       toast({
-        title: "Failed to save nickname",
+        title: "Failed to save nicknames",
         description: "Please try again later",
         variant: "destructive",
       });
@@ -100,7 +136,7 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
       <CardHeader>
         <CardTitle className="text-white">Personalize Messages</CardTitle>
         <CardDescription>
-          What do you call your partner? This helps personalize message refinements.
+          What do you call your partner? Add multiple nicknames to personalize message refinements.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -108,15 +144,49 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
           <div className="space-y-3">
             <Label htmlFor="partnerNickname" className="flex items-center gap-2">
               <HeartHandshake className="h-4 w-4" />
-              Partner's Nickname
+              Partner's Nicknames
             </Label>
-            <Input
-              id="partnerNickname"
-              placeholder="What do you call your partner?"
-              value={partnerNickname}
-              onChange={(e) => setPartnerNickname(e.target.value)}
-              className="bg-black/50 border-border text-white"
-            />
+            
+            {/* Selected nicknames display */}
+            {nicknames.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {nicknames.map((nickname, index) => (
+                  <div 
+                    key={`${nickname}-${index}`} 
+                    className="flex items-center bg-black/40 text-white text-sm px-3 py-1 rounded-full border border-border"
+                  >
+                    <span>{nickname}</span>
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveNickname(index)}
+                      className="ml-2 text-muted-foreground hover:text-white"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Input field with add button */}
+            <div className="flex gap-2">
+              <Input
+                id="partnerNickname"
+                placeholder="Add a new nickname..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="bg-black/50 border-border text-white flex-1"
+              />
+              <Button
+                type="button"
+                onClick={handleAddNickname}
+                disabled={!inputValue.trim()}
+                className="bg-black/30 hover:bg-black/50 border-border"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
             
             {/* Nickname suggestions */}
             <div className="mt-4">
@@ -124,7 +194,7 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
                 Quick suggestions:
               </p>
               <div className="flex flex-wrap gap-2">
-                {NICKNAME_SUGGESTIONS.map((suggestion) => (
+                {NICKNAME_SUGGESTIONS.filter(s => !nicknames.includes(s)).map((suggestion) => (
                   <Button
                     key={suggestion}
                     type="button"
@@ -136,21 +206,11 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
                     {suggestion}
                   </Button>
                 ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPartnerNickname("")}
-                  className="bg-black/30 hover:bg-black/50 border-border text-white text-xs py-1 h-auto"
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  Other
-                </Button>
               </div>
             </div>
             
             <p className="text-xs text-muted-foreground mt-3">
-              This is how your partner will be referred to in refined messages
+              Your partner will be referred to by these nicknames in message refinements
             </p>
           </div>
           
@@ -159,7 +219,7 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
             disabled={isSaving}
             className="w-full hwf-button mt-4"
           >
-            {isSaving ? "Saving..." : "Save Nickname"}
+            {isSaving ? "Saving..." : "Save Nicknames"}
           </Button>
         </form>
       </CardContent>
