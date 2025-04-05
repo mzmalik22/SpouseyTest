@@ -6,14 +6,16 @@ import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcrypt";
-import MemoryStore from "memorystore";
 import { refineMessage } from "./openai";
 
-const SessionStore = MemoryStore(session);
-
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize sample data
-  await storage.initializeSampleData();
+  try {
+    // Initialize sample data
+    await storage.initializeSampleData();
+  } catch (error) {
+    console.error("Error initializing sample data:", error);
+    // Continue without sample data
+  }
 
   // Session setup
   app.use(
@@ -22,9 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       resave: false,
       saveUninitialized: false,
       cookie: { secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 },
-      store: new SessionStore({
-        checkPeriod: 86400000, // prune expired entries every 24h
-      }),
+      store: storage.sessionStore,
     })
   );
 
@@ -46,7 +46,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return done(null, false, { message: "Incorrect email." });
           }
           
-          // In a real app, we would hash the password
+          // Using plaintext password comparison for development
+          // In production, we would use bcrypt.compare
           if (user.password !== password) {
             return done(null, false, { message: "Incorrect password." });
           }

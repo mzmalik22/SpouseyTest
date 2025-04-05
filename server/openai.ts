@@ -1,6 +1,11 @@
 import OpenAI from "openai";
 
-// Initialize OpenAI client
+// Check for OpenAI API key
+if (!process.env.OPENAI_API_KEY) {
+  console.warn("OPENAI_API_KEY environment variable is not set. Message refinement will not work.");
+}
+
+// Initialize OpenAI client 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -29,8 +34,11 @@ const vibePrompts: Record<string, string> = {
  * @returns The refined message text
  */
 export async function refineMessage(message: string, vibe: string): Promise<string> {
-  // If no vibe selected or message is empty, return the original
-  if (!message || !vibe || !vibePrompts[vibe.toLowerCase()]) {
+  // If no vibe selected, message is empty, or API key is missing, return the original
+  if (!message || !vibe || !vibePrompts[vibe.toLowerCase()] || !process.env.OPENAI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn("Message refinement skipped: OPENAI_API_KEY not set");
+    }
     return message;
   }
   

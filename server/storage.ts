@@ -1,10 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 import {
-  users, 
-  messages, 
-  coachingTopics, 
-  coachingContents, 
-  activities,
   type User, 
   type InsertUser, 
   type Message, 
@@ -16,6 +11,12 @@ import {
   type Activity,
   type InsertActivity
 } from "@shared/schema";
+import { pool } from "./db";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+
+// Use a memory-based storage implementation by default
+// We'll implement PostgreSQL-based storage in the future
 
 export interface IStorage {
   // User methods
@@ -43,7 +44,13 @@ export interface IStorage {
   
   // Initialize with sample data
   initializeSampleData(): Promise<void>;
+  
+  // Session store for authentication
+  sessionStore: session.Store;
 }
+
+import createMemoryStore from "memorystore";
+const MemoryStore = createMemoryStore(session);
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
@@ -56,6 +63,7 @@ export class MemStorage implements IStorage {
   private topicIdCounter: number;
   private contentIdCounter: number;
   private activityIdCounter: number;
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -68,6 +76,9 @@ export class MemStorage implements IStorage {
     this.topicIdCounter = 1;
     this.contentIdCounter = 1;
     this.activityIdCounter = 1;
+    this.sessionStore = new MemoryStore({ 
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
   }
 
   // User methods
@@ -315,4 +326,215 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+const PostgresSessionStore = connectPg(session);
+
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+  
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true
+    });
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserByInviteCode(inviteCode: string): Promise<User | undefined> {
+    if (!inviteCode) return undefined;
+    const [user] = await db.select().from(users).where(eq(users.inviteCode, inviteCode));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const inviteCode = uuidv4().substring(0, 8);
+    const [user] = await db.insert(users)
+      .values({ ...insertUser, inviteCode })
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
+    const [user] = await db.update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async getMessages(userId1: number, userId2: number): Promise<Message[]> {
+    return await db.select()
+      .from(messages)
+      .where(
+        or(
+          and(
+            eq(messages.senderId, userId1),
+            eq(messages.recipientId, userId2)
+          ),
+          and(
+            eq(messages.senderId, userId2),
+            eq(messages.recipientId, userId1)
+          )
+        )
+      )
+      .orderBy(messages.timestamp);
+  }
+
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const [message] = await db.insert(messages)
+      .values(insertMessage)
+      .returning();
+    return message;
+  }
+
+  async getCoachingTopics(): Promise<CoachingTopic[]> {
+    return await db.select().from(coachingTopics);
+  }
+
+  async getCoachingTopic(id: number): Promise<CoachingTopic | undefined> {
+    const [topic] = await db.select()
+      .from(coachingTopics)
+      .where(eq(coachingTopics.id, id));
+    return topic;
+  }
+
+  async createCoachingTopic(insertTopic: InsertCoachingTopic): Promise<CoachingTopic> {
+    const [topic] = await db.insert(coachingTopics)
+      .values(insertTopic)
+      .returning();
+    return topic;
+  }
+
+  async getCoachingContents(topicId: number): Promise<CoachingContent[]> {
+    return await db.select()
+      .from(coachingContents)
+      .where(eq(coachingContents.topicId, topicId))
+      .orderBy(coachingContents.order);
+  }
+
+  async createCoachingContent(insertContent: InsertCoachingContent): Promise<CoachingContent> {
+    const [content] = await db.insert(coachingContents)
+      .values(insertContent)
+      .returning();
+    return content;
+  }
+
+  async getUserActivities(userId: number, limit?: number): Promise<Activity[]> {
+    let query = db.select()
+      .from(activities)
+      .where(eq(activities.userId, userId))
+      .orderBy(desc(activities.timestamp));
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    return await query;
+  }
+
+  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
+    const [activity] = await db.insert(activities)
+      .values(insertActivity)
+      .returning();
+    return activity;
+  }
+
+  async initializeSampleData(): Promise<void> {
+    try {
+      // Check if we already have coaching topics
+      const existingTopics = await this.getCoachingTopics();
+      
+      if (existingTopics.length === 0) {
+        // Sample coaching topics
+        const communicationTopic = await this.createCoachingTopic({
+          title: "Communication Skills",
+          description: "Learn how to communicate more effectively with your partner",
+          icon: "fa-comments",
+        });
+        
+        const conflictTopic = await this.createCoachingTopic({
+          title: "Resolving Conflicts",
+          description: "Learn effective strategies to address disagreements constructively",
+          icon: "fa-heart-broken",
+        });
+        
+        const intimacyTopic = await this.createCoachingTopic({
+          title: "Building Intimacy",
+          description: "Deepen your connection and strengthen your bond",
+          icon: "fa-star",
+        });
+        
+        const goalsTopic = await this.createCoachingTopic({
+          title: "Shared Goals",
+          description: "Work together to achieve your relationship goals",
+          icon: "fa-balance-scale",
+        });
+        
+        const qualityTimeTopic = await this.createCoachingTopic({
+          title: "Quality Time",
+          description: "Make the most of your time together",
+          icon: "fa-calendar-check",
+        });
+        
+        // Create content for conflict resolution topic
+        await this.createCoachingContent({
+          topicId: conflictTopic.id,
+          title: "Introduction",
+          content: "Conflicts are natural in any relationship. The key is not to avoid them, but to address them in a way that strengthens your connection rather than weakening it.",
+          order: 1,
+        });
+        
+        await this.createCoachingContent({
+          topicId: conflictTopic.id,
+          title: "Choose the right time",
+          content: "Avoid discussing sensitive topics when either of you is tired, hungry, or stressed. Set aside a specific time when you're both calm.",
+          order: 2,
+        });
+        
+        await this.createCoachingContent({
+          topicId: conflictTopic.id,
+          title: "Use \"I\" statements",
+          content: "Instead of saying \"You always...\" try \"I feel...\" This reduces defensiveness and opens up communication.",
+          order: 3,
+        });
+        
+        await this.createCoachingContent({
+          topicId: conflictTopic.id,
+          title: "Listen actively",
+          content: "Give your full attention, maintain eye contact, and paraphrase to ensure understanding before responding.",
+          order: 4,
+        });
+        
+        await this.createCoachingContent({
+          topicId: conflictTopic.id,
+          title: "Practice Exercise",
+          content: "Try this simple exercise with your partner to improve conflict resolution skills:\n1. Each person writes down a minor recent disagreement\n2. Take turns discussing using \"I\" statements\n3. Practice active listening without interruption\n4. Look for compromise solutions together",
+          order: 5,
+        });
+      }
+    } catch (error) {
+      console.error("Error initializing sample data:", error);
+      // Continue without sample data if there's an error
+    }
+  }
+}
+
+// Use the in-memory storage implementation for now
+// We'll add proper database integration later
+const storage = new MemStorage();
+console.log("Using in-memory storage");
+
+export { storage };
