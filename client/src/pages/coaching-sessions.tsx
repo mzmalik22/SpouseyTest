@@ -115,22 +115,16 @@ export default function CoachingSessions() {
     }
   });
   
-  // Handle creating new session
-  const handleCreateSession = (e: FormEvent) => {
-    e.preventDefault();
-    if (!sessionTitle.trim()) {
-      toast({
-        title: "Please enter a title",
-        description: "Session title cannot be empty.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Handle creating new session - automatically using a default title
+  const handleCreateSession = (e?: FormEvent) => {
+    if (e) e.preventDefault();
+    
+    // Generate a default title based on the current time
+    const defaultTitle = `Coaching session - ${new Date().toLocaleDateString()}`;
     
     // Create the session and let onSuccess handle the redirection
-    createSessionMutation.mutate({ title: sessionTitle });
-    // Don't need to set these here as they'll be redundant
-    // The navigation will happen in the onSuccess callback
+    createSessionMutation.mutate({ title: sessionTitle.trim() || defaultTitle });
+    // Navigation will happen in the onSuccess callback
   };
   
   // Handle sending message
@@ -410,7 +404,7 @@ export default function CoachingSessions() {
           
           <Button 
             className="bg-emotion-peaceful hover:bg-emotion-peaceful/90"
-            onClick={() => setNewSessionOpen(true)}
+            onClick={() => handleCreateSession()}
           >
             <Plus className="mr-2 h-4 w-4" /> New Session
           </Button>
@@ -431,7 +425,7 @@ export default function CoachingSessions() {
                 <p className="text-muted-foreground mb-4">You don't have any coaching sessions yet.</p>
                 <Button 
                   className="bg-emotion-peaceful hover:bg-emotion-peaceful/90"
-                  onClick={() => setNewSessionOpen(true)}
+                  onClick={() => handleCreateSession()}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Start Your First Session
                 </Button>
