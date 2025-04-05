@@ -107,13 +107,15 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     setOriginalMessage(message);
     
     try {
-      const response = await apiRequest<{ refinedMessages: {[key: string]: string}, error?: string }>(
-        "POST", 
-        "/api/messages/refine-all-vibes", 
-        { message: message.trim() }
-      );
+      const response = await fetch("/api/messages/refine-all-vibes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: message.trim() }),
+      });
       
-      const data = await response.json();
+      const data = await response.json() as { refinedMessages: {[key: string]: string}, error?: string };
       
       // If there's an API error like quota exceeded
       if (data.error) {
@@ -339,9 +341,9 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Show selected vibe preview at the top if available */}
+                  {/* Only show selected vibe at the top if available */}
                   {selectedVibe && refinedMessages[selectedVibe.id] && (
-                    <div className="p-3 bg-black/50 rounded-lg border border-border">
+                    <div className="p-3 bg-black/50 rounded-lg border border-primary">
                       <div className="flex items-center mb-1">
                         <div 
                           className="w-3 h-3 rounded-full mr-2" 
@@ -349,58 +351,46 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
                         />
                         <p className="text-xs text-white font-medium">Selected: {selectedVibe.name}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-2">{selectedVibe.description}</p>
                       <p className="text-sm text-white">{refinedMessages[selectedVibe.id]}</p>
                     </div>
                   )}
                   
-                  {/* Vibe Pills */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {vibeOptions.map((vibe) => (
-                      <VibePill
-                        key={vibe.id}
-                        vibe={vibe}
-                        isSelected={selectedVibe?.id === vibe.id}
-                        onClick={handleVibeClick}
-                      />
-                    ))}
-                  </div>
-                  
-                  {/* All message previews listed below */}
-                  <div className="space-y-3 mt-2">
+                  {/* All message previews listed */}
+                  <div className="space-y-3">
                     {Object.entries(refinedMessages).length > 0 ? (
                       <>
                         <h4 className="text-xs text-muted-foreground font-medium">
-                          Message previews for each vibe:
+                          Choose how you want your message to sound:
                         </h4>
                         
-                        {vibeOptions.map(vibe => 
-                          refinedMessages[vibe.id] ? (
-                            <div 
-                              key={vibe.id} 
-                              className={`p-3 bg-black/30 rounded-lg border transition-colors cursor-pointer ${
-                                selectedVibe?.id === vibe.id 
-                                  ? 'border-primary' 
-                                  : 'border-border hover:border-primary/50'
-                              }`}
-                              onClick={() => handleVibeClick(vibe)}
-                            >
-                              <div className="flex items-center mb-1">
-                                <div 
-                                  className="w-2 h-2 rounded-full mr-2" 
-                                  style={{ backgroundColor: vibe.color }}
-                                />
-                                <p className="text-xs text-muted-foreground font-medium">{vibe.name}</p>
+                        <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto pr-2">
+                          {vibeOptions.map(vibe => 
+                            refinedMessages[vibe.id] ? (
+                              <div 
+                                key={vibe.id} 
+                                className={`p-3 bg-black/30 rounded-lg border transition-colors cursor-pointer ${
+                                  selectedVibe?.id === vibe.id 
+                                    ? 'border-primary' 
+                                    : 'border-border hover:border-primary/50'
+                                }`}
+                                onClick={() => handleVibeClick(vibe)}
+                              >
+                                <div className="flex items-center mb-1">
+                                  <div 
+                                    className="w-2 h-2 rounded-full mr-2" 
+                                    style={{ backgroundColor: vibe.color }}
+                                  />
+                                  <p className="text-xs text-muted-foreground font-medium">{vibe.name}</p>
+                                </div>
+                                <p className="text-xs text-white">{refinedMessages[vibe.id]}</p>
                               </div>
-                              <p className="text-[10px] text-muted-foreground mb-1">{vibe.description}</p>
-                              <p className="text-xs text-white">{refinedMessages[vibe.id]}</p>
-                            </div>
-                          ) : null
-                        )}
+                            ) : null
+                          )}
+                        </div>
                       </>
                     ) : (
                       <div className="text-center text-sm text-muted-foreground py-2">
-                        Choose a vibe to see message previews
+                        Your message will be displayed in different communication styles
                       </div>
                     )}
                   </div>

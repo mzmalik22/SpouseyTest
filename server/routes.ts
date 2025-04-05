@@ -302,9 +302,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const refinedMessage = await refineMessage(message, vibe);
       return res.json({ refinedMessage });
-    } catch (error) {
-      console.error("Error refining message:", error);
-      return res.status(500).json({ message: "Failed to refine message" });
+    } catch (error: any) {
+      console.error("Error refining message with OpenAI:", error);
+      
+      // Handle OpenAI API quota exceeded error
+      let errorMessage = "Failed to refine message";
+      if (error.code === 'insufficient_quota') {
+        errorMessage = "OpenAI API quota exceeded. Using original message instead.";
+      }
+      
+      // Return the original message as fallback with a warning
+      return res.status(200).json({ 
+        refinedMessage: message,
+        error: errorMessage
+      });
     }
   });
   
@@ -323,11 +334,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await refineMessageAllVibes(message);
       return res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error refining message for all vibes:", error);
-      return res.status(500).json({ 
-        refinedMessages: {},
-        error: "Failed to refine message for all vibes"
+      
+      // Handle OpenAI API quota exceeded error
+      let errorMessage = "Failed to refine message for all vibes";
+      if (error.code === 'insufficient_quota') {
+        errorMessage = "OpenAI API quota exceeded. Please try again later.";
+      }
+      
+      // Create a default response with the original message for each vibe
+      const { vibeOptions } = await import('../client/src/lib/types');
+      const fallbackRefinedMessages: Record<string, string> = {};
+      
+      // Use the original message as fallback for all vibes
+      if (vibeOptions) {
+        vibeOptions.forEach((vibe: any) => {
+          fallbackRefinedMessages[vibe.id] = message;
+        });
+      }
+      
+      return res.status(200).json({ 
+        refinedMessages: fallbackRefinedMessages,
+        error: errorMessage
       });
     }
   });
