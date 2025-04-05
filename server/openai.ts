@@ -13,10 +13,14 @@ function createOpenAIClient() {
     return null;
   }
   
+  console.log("Initializing OpenAI client with API key starting with:", process.env.OPENAI_API_KEY.substring(0, 3) + "...");
+  
   try {
-    return new OpenAI({
+    const client = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+    console.log("OpenAI client successfully initialized!");
+    return client;
   } catch (error) {
     console.error("Failed to initialize OpenAI client:", error);
     return null;
@@ -58,6 +62,10 @@ export async function generateCoachResponse(
   }
 
   try {
+    console.log("Generating coach response for message:", userMessage);
+    console.log("Conversation history length:", conversationHistory.length);
+    console.log("User details:", JSON.stringify(userDetails));
+    
     // Format conversation history for the prompt
     const formattedHistory = conversationHistory.map(msg => {
       return `${msg.isUserMessage ? "User" : "Coach"}: ${msg.content}`;
@@ -113,32 +121,54 @@ User's latest message: "${userMessage}"
 Please provide a thoughtful, empathetic coach response that addresses the user's concerns and offers helpful guidance.
 `;
 
-    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
-    });
-
-    // Return the coach response
-    const coachMessage = response.choices[0].message.content?.trim();
-    if (!coachMessage) {
-      throw new Error("Empty response from OpenAI");
+    // Log the request to OpenAI
+    console.log("Sending request to OpenAI with model: gpt-4o");
+    console.log("System prompt length:", systemPrompt.length);
+    console.log("User prompt length:", prompt.length);
+    
+    try {
+      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      });
+      
+      console.log("OpenAI response received successfully");
+      
+      // Return the coach response
+      const coachMessage = response.choices[0].message.content?.trim();
+      if (!coachMessage) {
+        throw new Error("Empty response from OpenAI");
+      }
+      
+      console.log("Coach response generated:", coachMessage.substring(0, 50) + "...");
+      return { message: coachMessage };
+    } catch (apiError: any) {
+      console.error("OpenAI API error:", apiError.message);
+      console.error("Error status:", apiError.status);
+      console.error("Error type:", apiError.type);
+      
+      if (apiError.message.includes("API key")) {
+        return { 
+          message: "I understand your concerns. What specific aspects of your relationship would you like to focus on improving?",
+          error: "API key configuration issue"
+        };
+      } else {
+        throw apiError; // Re-throw to be caught by the outer catch
+      }
     }
-    
-    return { message: coachMessage };
-    
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating coach response with OpenAI:", error);
     
     // Return a fallback response in case of error
     return { 
       message: "I appreciate you sharing that with me. What do you think would be a first step toward improving this situation? Sometimes small changes can make a big difference.",
-      error: "Failed to generate coach response"
+      error: error.message || "Failed to generate coach response"
     };
   }
 }

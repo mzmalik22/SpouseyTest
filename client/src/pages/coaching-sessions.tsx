@@ -103,13 +103,32 @@ export default function CoachingSessions() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { sessionId: number; content: string; isUserMessage: boolean }) => {
-      const response = await apiRequest("POST", "/api/coaching/sessions/messages", data);
-      return await response.json();
+      try {
+        const response = await apiRequest("POST", `/api/coaching/sessions/${data.sessionId}/messages`, {
+          content: data.content,
+          isUserMessage: data.isUserMessage
+        });
+        
+        // Check if the response is ok before trying to parse JSON
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error("Error in sendMessageMutation:", error);
+        throw error; // Re-throw to trigger onError
+      }
     },
     onSuccess: () => {
+      // Invalidate the query to refresh messages
       queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions", sessionId] });
       setNewMessage("");
-      // Scroll to bottom after sending a message (will happen via the useEffect when data updates)
+      
+      // After a short delay, refresh again to get the AI response
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions", sessionId] });
+      }, 1500);
     },
     onError: (error: Error) => {
       toast({
@@ -117,7 +136,7 @@ export default function CoachingSessions() {
         description: "Failed to send message. Please try again.",
         variant: "destructive",
       });
-      console.error(error);
+      console.error("Message mutation error:", error);
     }
   });
   
