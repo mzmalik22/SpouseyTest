@@ -9,6 +9,7 @@ import { Send, ChevronDown, ChevronUp, Smile, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/context/auth-context";
 import { 
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
   const [isLoadingAllVibes, setIsLoadingAllVibes] = useState(false);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Listen for conversation starter messages
   useEffect(() => {
@@ -87,6 +89,8 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
       const response = await apiRequest("POST", "/api/messages/refine", {
         message: message.trim(),
         vibe: selectedVibe.id,
+        userNickname: user?.nickname || undefined,
+        partnerNickname: user?.partnerNickname || undefined
       });
       
       if (!response.ok) {
@@ -136,6 +140,8 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
     try {
       const response = await apiRequest("POST", "/api/messages/refine-all-vibes", {
         message: message.trim(),
+        userNickname: user?.nickname || undefined,
+        partnerNickname: user?.partnerNickname || undefined
       });
       
       const data = await response.json() as { refinedMessages: {[key: string]: string}, error?: string };

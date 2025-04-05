@@ -157,7 +157,7 @@ export default function Messages() {
 
   const getPartnerName = () => {
     if (!user?.partnerId) return "your partner";
-    return "Alex"; // In a real app, this would come from the partner user object
+    return user?.partnerNickname || "your partner";
   };
 
   return (
