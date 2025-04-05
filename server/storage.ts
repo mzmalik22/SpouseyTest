@@ -108,13 +108,13 @@ export class MemStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+      (user) => user.username.toLowerCase() === username.toLowerCase(),
     );
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.email === email,
+      (user) => user.email.toLowerCase() === email.toLowerCase(),
     );
   }
 
@@ -429,12 +429,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    // Using LOWER() function for case-insensitive comparison
+    const [user] = await db.select().from(users).where(
+      sql`LOWER(${users.username}) = LOWER(${username})`
+    );
     return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    // Using LOWER() function for case-insensitive comparison
+    const [user] = await db.select().from(users).where(
+      sql`LOWER(${users.email}) = LOWER(${email})`
+    );
     return user;
   }
 
@@ -619,6 +625,7 @@ export class DatabaseStorage implements IStorage {
 
 // Import pool for session store
 import { pool } from './db';
+import { sql } from 'drizzle-orm';
 
 // Use in-memory storage
 const storage = new MemStorage();
