@@ -270,6 +270,15 @@ export class MemStorage implements IStorage {
     
     console.log("Initializing sample data...");
     
+    // Create test user as requested
+    const testUser = await this.createUser({
+      username: "Test",
+      password: "spouseytest",
+      email: "stockman.ed@gmail.com",
+      firstName: "Ed",
+      lastName: "Stockman",
+    });
+    
     // Create sample users
     const user1 = await this.createUser({
       username: "john_doe",
