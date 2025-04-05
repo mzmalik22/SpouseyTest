@@ -3,10 +3,133 @@ import Navbar from "@/components/navbar";
 import { useAuth } from "@/context/auth-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2, Send } from "lucide-react";
 import MessageBubble from "@/components/message-bubble";
 import MessageComposer from "@/components/message-composer";
 import { Message } from "@/lib/types";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+
+// StarterButton component for conversation starters with confirmation dialog
+interface StarterButtonProps {
+  message: string;
+}
+
+function StarterButton({ message }: StarterButtonProps) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editedMessage, setEditedMessage] = useState(message);
+  const [isSending, setIsSending] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const sendMessage = async () => {
+    try {
+      setIsSending(true);
+      
+      const response = await apiRequest("POST", "/api/messages", {
+        content: editedMessage,
+        originalContent: message !== editedMessage ? message : undefined
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        // Special handling for no partner connected case
+        if (errorData.message === "No partner connected") {
+          toast({
+            title: "Can't send message",
+            description: "You need to connect with a partner first. Use the partner invite feature to connect.",
+            variant: "destructive",
+          });
+          setDialogOpen(false);
+          return;
+        }
+        throw new Error(errorData.message || "Failed to send message");
+      }
+      
+      // Invalidate messages cache to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      
+      setDialogOpen(false);
+      setEditedMessage(message); // Reset to original
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to send message",
+        description: "Please try again later.",
+      });
+      console.error("Error sending message:", error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Set edited message back to original when dialog opens
+  useEffect(() => {
+    if (dialogOpen) {
+      setEditedMessage(message);
+    }
+  }, [dialogOpen, message]);
+
+  return (
+    <>
+      <button 
+        onClick={() => setDialogOpen(true)}
+        className="text-xs bg-black/40 hover:bg-black/60 text-white px-3 py-1.5 rounded-full border border-border/50"
+      >
+        {message}
+      </button>
+      
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-muted border-border">
+          <DialogTitle className="text-lg font-semibold text-center text-white">
+            Send message
+          </DialogTitle>
+          
+          <div className="my-4 space-y-4">
+            <Textarea
+              value={editedMessage}
+              onChange={(e) => setEditedMessage(e.target.value)}
+              className="w-full p-3 border border-border bg-black/30 text-white rounded-xl focus:ring-2 focus:ring-primary focus:outline-none resize-none"
+              rows={3}
+            />
+            
+            <div className="flex justify-between gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                className="flex-1 hwf-button flex items-center justify-center gap-2"
+                onClick={() => sendMessage()}
+                disabled={isSending || !editedMessage.trim()}
+              >
+                {isSending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                Send Message
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
 
 export default function Messages() {
   const { user } = useAuth();
@@ -86,50 +209,10 @@ export default function Messages() {
               <div className="mb-2">
                 <p className="text-xs text-muted-foreground mb-1">Try a conversation starter:</p>
                 <div className="flex flex-wrap gap-2">
-                  <button 
-                    onClick={() => {
-                      const starterEvent = new CustomEvent('set-message', { 
-                        detail: { message: "Miss you today 💭" } 
-                      });
-                      window.dispatchEvent(starterEvent);
-                    }}
-                    className="text-xs bg-black/40 hover:bg-black/60 text-white px-3 py-1.5 rounded-full border border-border/50"
-                  >
-                    Miss you today 💭
-                  </button>
-                  <button 
-                    onClick={() => {
-                      const starterEvent = new CustomEvent('set-message', { 
-                        detail: { message: "Dinner tonight? ❤️" } 
-                      });
-                      window.dispatchEvent(starterEvent);
-                    }}
-                    className="text-xs bg-black/40 hover:bg-black/60 text-white px-3 py-1.5 rounded-full border border-border/50"
-                  >
-                    Dinner tonight? ❤️
-                  </button>
-                  <button 
-                    onClick={() => {
-                      const starterEvent = new CustomEvent('set-message', { 
-                        detail: { message: "How's your day going?" } 
-                      });
-                      window.dispatchEvent(starterEvent);
-                    }}
-                    className="text-xs bg-black/40 hover:bg-black/60 text-white px-3 py-1.5 rounded-full border border-border/50"
-                  >
-                    How's your day going?
-                  </button>
-                  <button 
-                    onClick={() => {
-                      const starterEvent = new CustomEvent('set-message', { 
-                        detail: { message: "Can't wait to see you! 😊" } 
-                      });
-                      window.dispatchEvent(starterEvent);
-                    }}
-                    className="text-xs bg-black/40 hover:bg-black/60 text-white px-3 py-1.5 rounded-full border border-border/50"
-                  >
-                    Can't wait to see you! 😊
-                  </button>
+                  <StarterButton message="Miss you today 💭" />
+                  <StarterButton message="Dinner tonight? ❤️" />
+                  <StarterButton message="How's your day going?" />
+                  <StarterButton message="Can't wait to see you! 😊" />
                 </div>
               </div>
             </div>
