@@ -130,7 +130,14 @@ export class MemStorage implements IStorage {
     globalData.__spouseyAppStorage.userIdCounter = this.userIdCounter;
     
     const inviteCode = uuidv4().substring(0, 8);
-    const user: User = { ...insertUser, id, inviteCode };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      inviteCode,
+      onboardingCompleted: false,
+      maritalStatus: null,
+      relationshipCondition: null
+    };
     this.users.set(id, user);
     
     // Explicitly update the global map to ensure persistence

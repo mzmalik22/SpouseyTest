@@ -115,7 +115,7 @@ export default function Onboarding() {
       <CardContent>
         <RadioGroup
           value={state.maritalStatus || ""}
-          onValueChange={(value) => setState((prev) => ({ ...prev, maritalStatus: value }))}
+          onValueChange={(value) => setState((prev) => ({ ...prev, maritalStatus: value as MaritalStatus }))}
           className="space-y-3"
         >
           {maritalStatusValues.map((status) => (
@@ -148,7 +148,7 @@ export default function Onboarding() {
       <CardContent>
         <RadioGroup
           value={state.relationshipCondition || ""}
-          onValueChange={(value) => setState((prev) => ({ ...prev, relationshipCondition: value }))}
+          onValueChange={(value) => setState((prev) => ({ ...prev, relationshipCondition: value as RelationshipCondition }))}
           className="space-y-3"
         >
           <div 
