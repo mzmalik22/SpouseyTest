@@ -8,17 +8,30 @@ import QuickAccessTile from "@/components/quick-access-tile";
 import ActivityItem from "@/components/activity-item";
 import PartnerInviteModal from "@/components/partner-invite-modal";
 import NicknameForm from "@/components/nickname-form";
-import { MessageSquare, BookOpen } from "lucide-react";
+import { MessageSquare, BookOpen, Heart, Edit } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Activity } from "@/lib/types";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isEditingNicknames, setIsEditingNicknames] = useState(false);
 
   // Fetch activities
-  const { data: activities, isLoading: activitiesLoading } = useQuery({
+  const { data: activities, isLoading: activitiesLoading } = useQuery<Activity[]>({
     queryKey: ["/api/activities"],
     enabled: !!user,
   });
+
+  // Extract partner nicknames if available
+  const partnerNicknames = user?.partnerNickname 
+    ? user.partnerNickname.split(',').map(nickname => nickname.trim()).filter(Boolean) 
+    : [];
+
+  // Function to handle completing nickname edit
+  const handleNicknameFormSaved = () => {
+    setIsEditingNicknames(false);
+  };
 
   return (
     <div className="h-full min-h-screen flex flex-col bg-black">
@@ -55,9 +68,52 @@ export default function Dashboard() {
             </div>
           </div>
           
-          {/* Nickname Form */}
+          {/* Saved Nicknames Display or Nickname Form */}
           <div className="mb-6">
-            <NicknameForm />
+            {isEditingNicknames ? (
+              <NicknameForm onSaved={handleNicknameFormSaved} />
+            ) : (
+              <Card className="bg-muted border-border">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle className="text-white">Partner Nicknames</CardTitle>
+                    <CardDescription>
+                      These nicknames are used to personalize your message refinements
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => setIsEditingNicknames(true)}
+                    variant="ghost" 
+                    size="sm"
+                    className="h-8 px-2 text-emotion-happy hover:text-emotion-happy hover:bg-black/30"
+                  >
+                    <Edit className="h-4 w-4 mr-1" /> Edit
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {partnerNicknames.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 py-2">
+                      {partnerNicknames.map((nickname, index) => (
+                        <div 
+                          key={`${nickname}-${index}`}
+                          className="bg-black/40 text-white text-sm px-3 py-1 rounded-full border border-border flex items-center"
+                        >
+                          <Heart className="h-3 w-3 mr-1 text-emotion-passionate" />
+                          <span>{nickname}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center text-muted-foreground">
+                      <p>No nicknames saved yet. Click "Edit" to add partner nicknames.</p>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Message refinements will use these nicknames to personalize communication with your partner
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
           
           {/* Quick Access Tiles */}
@@ -94,7 +150,7 @@ export default function Dashboard() {
                 <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-emotion-happy"></div>
               </div>
             ) : activities && activities.length > 0 ? (
-              activities.map((activity: any) => (
+              activities.map((activity) => (
                 <ActivityItem key={activity.id} activity={activity} />
               ))
             ) : (
