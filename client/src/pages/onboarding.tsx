@@ -38,9 +38,9 @@ export default function Onboarding() {
       return;
     }
 
-    // Check if onboarding is completed (once we add this field to the User type)
+    // Check if onboarding is completed
     if (user.onboardingCompleted) {
-      setLocation("/dashboard");
+      setLocation("/");
     }
   }, [user, setLocation]);
 
@@ -91,7 +91,7 @@ export default function Onboarding() {
         description: "Thank you for providing your information. We'll use this to personalize your experience.",
       });
       
-      setLocation("/dashboard");
+      setLocation("/");
     } catch (error) {
       toast({
         title: "Error",
