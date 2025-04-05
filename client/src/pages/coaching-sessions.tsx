@@ -3,7 +3,8 @@ import Navbar from "@/components/navbar";
 import { useAuth } from "@/context/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useParams, useLocation } from "wouter";
-import { ArrowLeft, MessageCircle, Plus, Calendar, Clock, Heart, User, UserPlus2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, Plus, Calendar, Clock, Heart, User, UserPlus2, List, ListFilter as ListIcon } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CoachingSession, CoachingSessionMessage } from "@/lib/types";
@@ -27,7 +28,7 @@ interface SessionResponse {
 export default function CoachingSessions() {
   const { user } = useAuth();
   const params = useParams();
-  const sessionId = params.id ? parseInt(params.id) : null;
+  const sessionId = params.id || null;
   const [location, setLocation] = useLocation();
   const [newSessionOpen, setNewSessionOpen] = useState(false);
   const [sessionTitle, setSessionTitle] = useState("");
@@ -54,7 +55,8 @@ export default function CoachingSessions() {
       return await response.json();
     },
     onSuccess: (data: CoachingSession) => {
-      console.log("Session created successfully, navigating to:", `/coaching-sessions/${data.id}`);
+      const newSessionUrl = `/coaching-sessions/${data.id}`;
+      console.log("Session created successfully, navigating to:", newSessionUrl);
       
       // Close the modal dialog if it's open
       setNewSessionOpen(false);
@@ -62,6 +64,11 @@ export default function CoachingSessions() {
       
       // Invalidate the query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions"] });
+      
+      // Ensure we navigate to the new session
+      setTimeout(() => {
+        window.location.href = newSessionUrl;
+      }, 100);
       
       toast({
         title: "Session created",
@@ -100,7 +107,7 @@ export default function CoachingSessions() {
   
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async (data: { sessionId: number; content: string; isUserMessage: boolean }) => {
+    mutationFn: async (data: { sessionId: string; content: string; isUserMessage: boolean }) => {
       try {
         const response = await apiRequest("POST", `/api/coaching/sessions/${data.sessionId}/messages`, {
           content: data.content,
@@ -239,7 +246,7 @@ export default function CoachingSessions() {
                 <div 
                   key={session.id}
                   className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                    session.id === parseInt(sessionId) 
+                    sessionId && String(session.id) === sessionId 
                       ? 'bg-muted border-emotion-peaceful' 
                       : 'bg-background border-border hover:border-border/80'
                   }`}
@@ -292,12 +299,15 @@ export default function CoachingSessions() {
                 </h2>
               </div>
               
-              {/* Mobile menu button */}
+              {/* Mobile menu button for sessions */}
               <Button
                 variant="ghost" 
                 size="sm"
                 className="md:hidden"
-                onClick={() => setLocation('/coaching-sessions')}
+                onClick={() => {
+                  // Open mobile sessions list
+                  setNewSessionOpen(true);
+                }}
               >
                 <List className="h-5 w-5" />
               </Button>
@@ -541,58 +551,116 @@ export default function CoachingSessions() {
         )}
       </div>
       
-      {/* New Session Dialog */}
+      {/* Sessions Dialog for Mobile & New Session Creation */}
       <Dialog open={newSessionOpen} onOpenChange={setNewSessionOpen}>
         <DialogContent className="bg-muted border-border text-white">
           <DialogHeader>
-            <DialogTitle>Start a New Coaching Session</DialogTitle>
+            <DialogTitle>Coaching Sessions</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Begin your conversation with a relationship coach. What would you like to discuss today?
+              {sessionId ? "Switch to another session or start a new one" : "Begin your conversation with a relationship coach"}
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleCreateSession}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label htmlFor="title" className="text-sm font-medium">
-                  Session Title
-                </label>
-                <input 
-                  id="title"
-                  type="text"
-                  value={sessionTitle}
-                  onChange={(e) => setSessionTitle(e.target.value)}
-                  placeholder="e.g., Communication issues, Trust building, etc."
-                  className="w-full rounded-md bg-background border border-border p-2 text-white"
-                />
-              </div>
-            </div>
+          <Tabs defaultValue={sessionId ? "existing" : "new"}>
+            <TabsList className="grid w-full grid-cols-2 bg-background border border-border">
+              <TabsTrigger value="existing">Your Sessions</TabsTrigger>
+              <TabsTrigger value="new">New Session</TabsTrigger>
+            </TabsList>
             
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="border-border text-white"
-                onClick={() => setNewSessionOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-emotion-peaceful hover:bg-emotion-peaceful/90"
-                disabled={createSessionMutation.isPending}
-              >
-                {createSessionMutation.isPending ? (
-                  <div className="flex items-center">
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent border-current" />
-                    Creating...
+            {/* Existing Sessions Tab */}
+            <TabsContent value="existing" className="mt-4">
+              {sessions && sessions.length > 0 ? (
+                <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                  {sessions.map((session) => (
+                    <div 
+                      key={session.id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        sessionId && String(session.id) === sessionId 
+                          ? 'bg-background border-emotion-peaceful' 
+                          : 'bg-background/50 border-border hover:border-border/80'
+                      }`}
+                      onClick={() => {
+                        setNewSessionOpen(false);
+                        setLocation(`/coaching-sessions/${session.id}`);
+                      }}
+                    >
+                      <div className="font-medium text-white text-sm mb-1 truncate">{session.title}</div>
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${
+                          session.status === 'active' 
+                            ? 'bg-green-900/20 text-green-500' 
+                            : session.status === 'completed'
+                              ? 'bg-blue-900/20 text-blue-500'
+                              : 'bg-gray-900/20 text-gray-500'
+                        }`}>
+                          {session.status ? session.status.charAt(0).toUpperCase() + session.status.slice(1) : 'Active'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {session.lastMessageAt 
+                            ? formatDistanceToNow(new Date(session.lastMessageAt), { addSuffix: true })
+                            : 'Just now'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No sessions yet. Create your first one!</p>
+                </div>
+              )}
+            </TabsContent>
+            
+            {/* New Session Tab */}
+            <TabsContent value="new" className="mt-4">
+              <form onSubmit={handleCreateSession}>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <label htmlFor="title" className="text-sm font-medium">
+                      Session Title
+                    </label>
+                    <input 
+                      id="title"
+                      type="text"
+                      value={sessionTitle}
+                      onChange={(e) => setSessionTitle(e.target.value)}
+                      placeholder="e.g., Communication issues, Trust building, etc."
+                      className="w-full rounded-md bg-background border border-border p-2 text-white"
+                    />
                   </div>
-                ) : (
-                  "Start Session"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
+                </div>
+                
+                <Button 
+                  type="submit"
+                  className="w-full bg-emotion-peaceful hover:bg-emotion-peaceful/90 mt-2"
+                  disabled={createSessionMutation.isPending}
+                >
+                  {createSessionMutation.isPending ? (
+                    <div className="flex items-center justify-center">
+                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent border-current" />
+                      Creating...
+                    </div>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Start New Session
+                    </>
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+          
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="border-border text-white"
+              onClick={() => setNewSessionOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
