@@ -16,18 +16,36 @@ export default function VibePill({ vibe, isSelected, onClick }: VibePillProps) {
 
   if (!mounted) return null;
 
+  // Map vibe.id to emotion colors
+  const getEmotionColor = (vibeId: string) => {
+    switch(vibeId) {
+      case 'compassionate':
+        return 'emotion-peaceful';
+      case 'direct':
+        return 'emotion-angry';
+      case 'supportive':
+        return 'emotion-sad';
+      case 'enthusiastic':
+        return 'emotion-happy';
+      default:
+        return 'emotion-happy';
+    }
+  };
+
+  const emotionClass = getEmotionColor(vibe.id);
+  
   return (
     <button
       type="button"
       onClick={() => onClick(vibe)}
-      className={`vibe-pill flex items-center px-3 py-1.5 rounded-full text-sm font-medium
-        ${isSelected
-          ? `border-primary text-primary bg-white hover:bg-primary-light hover:bg-opacity-10`
-          : `bg-white border border-neutral-200 hover:border-primary`
-        } focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200`}
+      className={`group flex flex-col items-center`}
     >
-      <i className={`fas ${vibe.icon} ${vibe.color} mr-1.5`}></i>
-      <span>{vibe.name}</span>
+      <div className={`emotion-circle ${isSelected ? emotionClass : 'border-white bg-transparent'} mb-1.5 transition-all duration-200`}>
+        <i className={`fas ${vibe.icon} ${isSelected ? 'text-black' : 'text-white'}`}></i>
+      </div>
+      <span className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-muted-foreground'}`}>
+        {vibe.name}
+      </span>
     </button>
   );
 }

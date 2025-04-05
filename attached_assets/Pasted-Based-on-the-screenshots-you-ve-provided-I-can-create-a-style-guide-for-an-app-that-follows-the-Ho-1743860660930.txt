@@ -1,0 +1,74 @@
+Based on the screenshots you've provided, I can create a style guide for an app that follows the "How We Feel" design aesthetic. This will help you maintain a consistent look and feel if you're creating something similar. I'll break this down into simple steps and elements.
+
+# "How We Feel" App Style Guide
+
+## Colors
+- **Background**: Black (#000000) - consistent dark theme throughout
+- **Primary Colors**:
+  - Yellow/Gold (#FFD700) - for enthusiastic/productive emotions
+  - Green (#90EE90) - for peaceful/content/loved emotions
+  - Red/Coral (#FF6347) - for mad/scared emotions
+  - Blue (#6495ED) - for lonely/numb emotions
+
+## Typography
+- **Headings**: Large, bold white text with plenty of spacing
+- **Body Text**: Light gray text (#AAAAAA) for secondary information
+- **Button Text**: Bold, centered text in buttons
+- **Text Alignment**: Left-aligned for most content, centered for buttons
+
+## UI Elements
+- **Buttons**:
+  - White rounded rectangle buttons with black text
+  - Full width with generous padding (about 20px)
+  - Consistent "Continue" text on navigation buttons
+  - Secondary option "Not right now" or "Skip setup" as smaller text below main button
+  
+- **Circles/Shapes**:
+  - Emotion indicators are simple shapes with distinctive colors
+  - Circular buttons for selection options
+  - Simple white borders for unselected items
+
+- **Icons**:
+  - Minimalist line drawings
+  - White outlines
+  - Playful character illustrations (blob shapes with stick arms/legs)
+
+## Layout
+- **Screen Structure**:
+  - Progress indicator at top (line showing completion)
+  - Page number in top right (e.g., "2/9")
+  - Back arrow in top left
+  - Main heading at top
+  - Content in middle
+  - Action button at bottom
+  
+- **Spacing**:
+  - Generous whitespace between elements
+  - Consistent margins (approximately 20-30px from edges)
+  - Clear separation between sections with divider lines
+
+## Animations & Character Design
+- **Characters**:
+  - Simple blob-like shapes with stick figure limbs
+  - Each emotion has a distinctive shape and color
+  - Minimal facial features (simple curved lines for expressions)
+  - Small highlights/reflections (white curved lines)
+
+## Navigation
+- Large "Continue" buttons for moving forward
+- Back arrows for returning to previous screens
+- Optional "Skip" or "Not right now" text links
+
+## Content Organization
+- Content is organized in a step-by-step onboarding flow
+- Each screen focuses on one specific action or choice
+- Limited text per screen (keeps it simple and focused)
+- Questions followed by clear options
+
+## Special Elements
+- Four-quadrant emotion selection grid (High/Low Energy, Pleasant/Unpleasant)
+- Time selection with editable fields
+- Activity tags in pill-shaped buttons
+- Colorful emotion tracking system with numeric indicators
+
+This style guide captures the main visual and interaction elements from the "How We Feel" app. Would you like me to elaborate on any specific section or explain how to implement any particular element?

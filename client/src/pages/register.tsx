@@ -46,135 +46,176 @@ export default function Register() {
   };
 
   return (
-    <div className="h-full min-h-screen flex items-center justify-center p-4 bg-neutral-50">
-      <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <span className="text-rose-500">Spousey</span>.ai
-            <Heart className="h-6 w-6 text-rose-400" />
-          </h1>
-          <p className="text-gray-500 mt-2">Create your account to get started</p>
+    <div className="h-full min-h-screen flex flex-col md:flex-row">
+      {/* Left side - Form */}
+      <div className="w-full md:w-1/2 p-8 flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-2">
+              <span className="text-emotion-happy">Spousey</span>.ai
+              <Heart className="h-6 w-6 text-emotion-happy" />
+            </h1>
+            <p className="text-muted-foreground mt-2">Create your account to get started</p>
+          </div>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white">First Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="John"
+                          className="w-full p-4 bg-muted border border-border text-white rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-emotion-angry" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white">Last Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Doe"
+                          className="w-full p-4 bg-muted border border-border text-white rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-emotion-angry" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white">Username</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="johnsmith"
+                        className="w-full p-4 bg-muted border border-border text-white rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-emotion-angry" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white">Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="email"
+                        placeholder="john@example.com"
+                        className="w-full p-4 bg-muted border border-border text-white rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-emotion-angry" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white">Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="password"
+                        placeholder="••••••••"
+                        className="w-full p-4 bg-muted border border-border text-white rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-emotion-angry" />
+                  </FormItem>
+                )}
+              />
+
+              <Button
+                type="submit"
+                className="hwf-button"
+                disabled={isLoading}
+              >
+                {isLoading ? "Creating Account..." : "Continue"}
+              </Button>
+
+              <div className="text-center mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link href="/login" className="font-medium text-emotion-happy hover:text-white">
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+            </form>
+          </Form>
         </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700">First Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="John"
-                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700">Last Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Doe"
-                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      </div>
+      
+      {/* Right side - Hero section */}
+      <div className="hidden md:block w-1/2 bg-gradient-to-br from-muted to-black p-12 flex flex-col justify-center">
+        <div className="mb-8 flex justify-center">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="emotion-circle emotion-circle-happy w-16 h-16 flex items-center justify-center">
+              <span className="text-2xl">😊</span>
             </div>
-
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-700">Username</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="johnsmith"
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-700">Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="john@example.com"
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-700">Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="password"
-                      placeholder="••••••••"
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Button
-              type="submit"
-              className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-xl transition duration-200"
-              disabled={isLoading}
-            >
-              {isLoading ? "Creating Account..." : "Create Account"}
-            </Button>
-
-            <div className="text-center mt-4">
-              <p className="text-sm text-gray-500">
-                Already have an account?{" "}
-                <Link href="/login" className="font-medium text-primary hover:text-primary-dark">
-                  Sign in
-                </Link>
-              </p>
+            <div className="emotion-circle emotion-circle-peaceful w-16 h-16 flex items-center justify-center">
+              <span className="text-2xl">💚</span>
             </div>
-          </form>
-        </Form>
+            <div className="emotion-circle emotion-circle-sad w-16 h-16 flex items-center justify-center">
+              <span className="text-2xl">💙</span>
+            </div>
+            <div className="emotion-circle emotion-circle-angry w-16 h-16 flex items-center justify-center">
+              <span className="text-2xl">❤️</span>
+            </div>
+          </div>
+        </div>
+        <h2 className="text-3xl font-bold text-white mb-4">Join Spousey.ai Today</h2>
+        <p className="text-muted-foreground text-lg mb-8">
+          Start your journey to better communication and a stronger relationship. Create your account to access all features.
+        </p>
+        <ul className="space-y-4">
+          <li className="flex items-center text-muted-foreground">
+            <div className="mr-3 w-6 h-6 rounded-full bg-emotion-happy flex items-center justify-center text-black">✓</div>
+            Partner connection
+          </li>
+          <li className="flex items-center text-muted-foreground">
+            <div className="mr-3 w-6 h-6 rounded-full bg-emotion-peaceful flex items-center justify-center text-black">✓</div>
+            Message vibe refinement
+          </li>
+          <li className="flex items-center text-muted-foreground">
+            <div className="mr-3 w-6 h-6 rounded-full bg-emotion-sad flex items-center justify-center text-black">✓</div>
+            Relationship progress tracking
+          </li>
+        </ul>
       </div>
     </div>
   );

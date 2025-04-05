@@ -41,6 +41,13 @@ export default {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        // Emotion colors from "How We Feel" style guide
+        emotion: {
+          happy: "#FFD700", // Yellow/Gold for enthusiastic/productive emotions
+          peaceful: "#90EE90", // Green for peaceful/content/loved emotions
+          angry: "#FF6347", // Red/Coral for mad/scared emotions
+          sad: "#6495ED", // Blue for lonely/numb emotions
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

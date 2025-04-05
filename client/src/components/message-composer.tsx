@@ -130,11 +130,11 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
   };
 
   return (
-    <div className="border-t border-neutral-200 p-4">
+    <div className="border-t border-border p-4 bg-black">
       {/* Message Refinement Options */}
       {enableRefinement && (
         <div className="mb-4 overflow-x-auto no-scrollbar">
-          <div className="flex space-x-2 pb-2">
+          <div className="flex space-x-3 pb-2">
             {vibeOptions.map((vibe) => (
               <VibePill
                 key={vibe.id}
@@ -149,15 +149,15 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
 
       {/* Message Preview */}
       {enableRefinement && refinedMessage && (
-        <div className="mb-4 p-3 bg-neutral-50 rounded-xl border border-neutral-200">
-          <p className="text-sm text-neutral-800">{refinedMessage}</p>
+        <div className="mb-4 p-3 bg-muted rounded-xl border border-border">
+          <p className="text-sm text-white">{refinedMessage}</p>
           {originalMessage && (
             <div className="flex justify-between items-center mt-2">
-              <span className="text-xs text-neutral-500">Original: "{originalMessage}"</span>
+              <span className="text-xs text-muted-foreground">Original: "{originalMessage}"</span>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="text-xs text-primary hover:text-primary-dark"
+                className="text-xs text-muted-foreground hover:text-white"
                 onClick={() => {
                   setMessage(originalMessage);
                   setRefinedMessage("");
@@ -180,21 +180,21 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Type your message..."
-            className="w-full p-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none resize-none"
-            rows={1}
+            className="w-full p-3 border border-border bg-muted text-white rounded-xl focus:ring-2 focus:ring-primary focus:outline-none resize-none"
+            rows={2}
           />
         </div>
         <Button
           onClick={sendMessage}
           disabled={isSending || isRefining || (!message && !refinedMessage)}
-          className="inline-flex items-center justify-center h-10 w-10 rounded-xl bg-primary text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          className="hwf-button h-12 w-12 !bg-white !text-black !rounded-full"
         >
           <Send className="h-5 w-5" />
         </Button>
       </div>
 
       {/* Refinement Toggle */}
-      <div className="flex items-center mt-2">
+      <div className="flex items-center mt-3">
         <Switch
           id="refinement-toggle"
           checked={enableRefinement}
@@ -203,9 +203,9 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
         />
         <Label
           htmlFor="refinement-toggle"
-          className="text-xs text-neutral-500 cursor-pointer"
+          className="text-xs text-muted-foreground cursor-pointer"
         >
-          Enable message refinement
+          Message refinement
         </Label>
       </div>
     </div>

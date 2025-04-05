@@ -3,11 +3,86 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 0 0% 0%; /* Black background */
+    --foreground: 0 0% 100%; /* White text */
+    
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 0 0% 3%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 50 100% 50%; /* Golden yellow */
+    --primary-foreground: 0 0% 0%;
+    
+    --secondary: 210 100% 50%; /* Blue */
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%; /* Light gray for secondary text */
+    
+    --accent: 120 75% 75%; /* Green */
+    --accent-foreground: 0 0% 0%;
+    
+    --destructive: 0 70% 50%; /* Red/Coral */
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+    --ring: 50 100% 50%; /* Golden yellow */
+    
+    --radius: 1.5rem;
+  }
+  
   * {
     @apply border-border;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-black text-white;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-wide;
+  }
+}
+
+@layer components {
+  /* "How We Feel" consistent button styling */
+  .hwf-button {
+    @apply w-full py-5 px-4 bg-white text-black font-bold rounded-xl flex items-center justify-center;
+  }
+  
+  /* Emotion circles for vibe options */
+  .emotion-circle {
+    @apply rounded-full w-12 h-12 flex items-center justify-center border-2;
+  }
+  
+  .emotion-circle-happy {
+    @apply bg-emotion-happy border-emotion-happy text-black;
+  }
+  
+  .emotion-circle-peaceful {
+    @apply bg-emotion-peaceful border-emotion-peaceful text-black;
+  }
+  
+  .emotion-circle-angry {
+    @apply bg-emotion-angry border-emotion-angry text-black;
+  }
+  
+  .emotion-circle-sad {
+    @apply bg-emotion-sad border-emotion-sad text-black;
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 640px) {
+    .container {
+      @apply px-4;
+    }
+    
+    .hwf-button {
+      @apply py-4;
+    }
   }
 }
