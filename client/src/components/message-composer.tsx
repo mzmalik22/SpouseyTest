@@ -249,7 +249,16 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
   
   // Send the message
   const sendMessage = async () => {
-    const messageToSend = enableRefinement && refinedMessage ? refinedMessage : message;
+    // Get the right message content to send
+    let messageToSend = message;
+    
+    // If refinement is enabled and we have a selected vibe, use that vibe's refined message
+    if (enableRefinement && selectedVibe && refinedMessages[selectedVibe.id]) {
+      messageToSend = refinedMessages[selectedVibe.id];
+    } else if (enableRefinement && refinedMessage) {
+      // Fallback to the single refined message if we have one
+      messageToSend = refinedMessage;
+    }
     
     if (!messageToSend.trim()) {
       toast({
