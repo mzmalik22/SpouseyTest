@@ -9,6 +9,8 @@ import bcrypt from "bcrypt";
 import { refineMessage } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Using in-memory storage
+  
   try {
     // Initialize sample data
     await storage.initializeSampleData();
@@ -40,20 +42,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       },
       async (email, password, done) => {
         try {
+          console.log("Attempting login with email:", email);
           const user = await storage.getUserByEmail(email);
           
           if (!user) {
+            console.log("User not found with email:", email);
             return done(null, false, { message: "Incorrect email." });
           }
           
+          console.log("User found, checking password...");
           // Using plaintext password comparison for development
           // In production, we would use bcrypt.compare
           if (user.password !== password) {
+            console.log("Password does not match");
             return done(null, false, { message: "Incorrect password." });
           }
           
+          console.log("Login successful for user:", user.username);
           return done(null, user);
         } catch (err) {
+          console.error("Error during authentication:", err);
           return done(err);
         }
       }
@@ -76,30 +84,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.post("/api/auth/register", async (req, res) => {
     try {
+      console.log("Registration request received:", req.body);
       const userData = insertUserSchema.parse(req.body);
       
       // Check if email already exists
       const emailExists = await storage.getUserByEmail(userData.email);
       if (emailExists) {
+        console.log("Email already exists:", userData.email);
         return res.status(400).json({ message: "Email already exists" });
+      }
+      
+      // Check if username already exists
+      const usernameExists = await storage.getUserByUsername(userData.username);
+      if (usernameExists) {
+        console.log("Username already exists:", userData.username);
+        return res.status(400).json({ message: "Username already exists" });
       }
       
       // In a real app, we would hash the password
       // const hashedPassword = await bcrypt.hash(userData.password, 10);
       // userData.password = hashedPassword;
       
+      console.log("Creating new user with data:", { ...userData, password: '[REDACTED]' });
       const user = await storage.createUser(userData);
+      console.log("User created successfully:", user.id);
       
       // Exclude password from response
       const { password, ...userWithoutPassword } = user;
       
       req.login(user, (err) => {
         if (err) {
+          console.error("Login error after registration:", err);
           return res.status(500).json({ message: "Login error after registration" });
         }
+        console.log("User logged in after registration:", user.id);
         return res.status(201).json(userWithoutPassword);
       });
     } catch (error) {
+      console.error("Registration error:", error);
       return res.status(400).json({ message: error.message });
     }
   });

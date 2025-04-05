@@ -52,9 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData);
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${userData.firstName || userData.email}!`,
+        description: `Welcome back, ${userData.firstName || userData.username || userData.email}!`,
       });
     } catch (error) {
+      console.error("Login failed:", error);
       toast({
         variant: "destructive",
         title: "Login Failed",

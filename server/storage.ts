@@ -532,8 +532,10 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Use the in-memory storage implementation for now
-// We'll add proper database integration later
+// Import pool for session store
+import { pool } from './db';
+
+// Use in-memory storage
 const storage = new MemStorage();
 console.log("Using in-memory storage");
 

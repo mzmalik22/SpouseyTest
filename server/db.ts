@@ -7,6 +7,10 @@ let pool;
 
 try {
   const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+  
   pool = new Pool({ 
     connectionString,
     // Connection timeout after 5 seconds
@@ -25,7 +29,7 @@ try {
   console.log("Database connection initialized successfully");
 } catch (error) {
   console.error("Error initializing database connection:", error);
-  pool = {};
+  pool = null;
 }
 
 // Export the pool for session store usage
