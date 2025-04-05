@@ -382,45 +382,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionId,
       });
       
+      // Update the lastMessageAt timestamp for the session
+      await storage.updateCoachingSession(sessionId, {
+        lastMessageAt: new Date()
+      });
+      
       // If it's a user message, automatically generate the coach response
       if (messageData.isUserMessage) {
-        // Fetch previous messages to provide as context
-        const previousMessages = await storage.getCoachingSessionMessages(sessionId);
-        
-        // Format messages for context (limit to last 10 messages to avoid token limits)
-        const conversationHistory = previousMessages
-          .slice(-10)
-          .map(msg => ({
-            content: msg.content,
-            isUserMessage: msg.isUserMessage
-          }));
+        try {
+          // Fetch previous messages to provide as context
+          const previousMessages = await storage.getCoachingSessionMessages(sessionId);
           
-        // Get current user details for personalization
-        const currentUser = req.user as any;
-        const userDetails = {
-          nickname: currentUser.nickname,
-          partnerNickname: currentUser.partnerNickname,
-          relationshipCondition: currentUser.relationshipCondition,
-          maritalStatus: currentUser.maritalStatus
-        };
-        
-        // Generate AI coach response
-        const coachResponse = await generateCoachResponse(
-          messageData.content,
-          conversationHistory,
-          userDetails
-        );
-        
-        // Save the coach response to the database
-        if (!coachResponse.error) {
-          await storage.createCoachingSessionMessage({
-            sessionId,
-            content: coachResponse.message,
-            isUserMessage: false
-          });
+          // Format messages for context (limit to last 10 messages to avoid token limits)
+          const conversationHistory = previousMessages
+            .slice(-10)
+            .map(msg => ({
+              content: msg.content,
+              isUserMessage: msg.isUserMessage
+            }));
+            
+          // Get current user details for personalization
+          const currentUser = req.user as any;
+          const userDetails = {
+            nickname: currentUser.nickname,
+            partnerNickname: currentUser.partnerNickname,
+            relationshipCondition: currentUser.relationshipCondition,
+            maritalStatus: currentUser.maritalStatus
+          };
+          
+          console.log("Generating AI coach response...");
+          
+          // Generate AI coach response
+          const coachResponse = await generateCoachResponse(
+            messageData.content,
+            conversationHistory,
+            userDetails
+          );
+          
+          console.log("AI response generated:", { message: coachResponse.message?.substring(0, 50) + "..." });
+          
+          // Save the coach response to the database
+          if (!coachResponse.error) {
+            await storage.createCoachingSessionMessage({
+              sessionId,
+              content: coachResponse.message,
+              isUserMessage: false
+            });
+            
+            // Update the lastMessageAt timestamp again after the coach response
+            await storage.updateCoachingSession(sessionId, {
+              lastMessageAt: new Date()
+            });
+          } else {
+            console.error("Error generating coach response:", coachResponse.error);
+          }
+        } catch (aiError) {
+          console.error("AI response generation error:", aiError);
+          // Don't fail the entire request if the AI response fails
+          // We'll still return the user's message as successfully created
         }
       }
       
+      // Return the original user message as created successfully
       return res.status(201).json(message);
     } catch (error) {
       console.error("Error creating coaching session message:", error);
