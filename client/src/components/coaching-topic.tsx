@@ -13,11 +13,11 @@ export default function CoachingTopicItem({ topic, isActive, onClick }: Coaching
         type="button"
         onClick={() => onClick(topic)}
         className={`w-full flex items-center px-3 py-2 text-left rounded-xl
-          ${isActive ? "bg-primary bg-opacity-10 border border-primary border-opacity-25" : "hover:bg-neutral-50"}
-          focus:outline-none focus:ring-2 focus:ring-primary`}
+          ${isActive ? "bg-emotion-peaceful bg-opacity-20 border border-emotion-peaceful border-opacity-40" : "hover:bg-muted-foreground/5"}
+          focus:outline-none focus:ring-2 focus:ring-emotion-peaceful`}
       >
-        <i className={`fas ${topic.icon} text-primary mr-3`}></i>
-        <span className="text-sm font-medium text-neutral-800">{topic.title}</span>
+        <i className={`fas ${topic.icon} text-emotion-peaceful mr-3`}></i>
+        <span className="text-sm font-medium text-white">{topic.title}</span>
       </button>
     </li>
   );

@@ -29,14 +29,14 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-white shadow-sm">
+    <header className="bg-muted/50 border-b border-border/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link href="/">
-              <h1 className="text-xl font-bold text-neutral-800 flex items-center gap-1 cursor-pointer">
-                <span className="text-rose-500">Spousey</span>.ai
-                <Heart className="h-4 w-4 text-rose-400" />
+              <h1 className="text-xl font-bold text-white flex items-center gap-1 cursor-pointer">
+                <span className="text-emotion-happy">Spousey</span>.ai
+                <Heart className="h-4 w-4 text-emotion-happy" />
               </h1>
             </Link>
           </div>
@@ -44,35 +44,35 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative flex items-center gap-2 focus:ring-0">
+                <Button variant="ghost" className="relative flex items-center gap-2 focus:ring-0 text-white hover:bg-muted-foreground/10">
                   {user?.firstName && <span className="text-sm hidden sm:inline">{user.firstName}</span>}
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
+                  <Avatar className="h-8 w-8 border border-emotion-happy">
+                    <AvatarFallback className="bg-emotion-happy text-black">
                       {getInitials()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/" className="cursor-pointer w-full">
+              <DropdownMenuContent align="end" className="bg-muted border border-border">
+                <DropdownMenuLabel className="text-white">My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border/50" />
+                <DropdownMenuItem asChild className="focus:bg-muted-foreground/10">
+                  <Link href="/" className="cursor-pointer w-full text-white">
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/messages" className="cursor-pointer w-full">
+                <DropdownMenuItem asChild className="focus:bg-muted-foreground/10">
+                  <Link href="/messages" className="cursor-pointer w-full text-white">
                     Messages
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/coaching" className="cursor-pointer w-full">
+                <DropdownMenuItem asChild className="focus:bg-muted-foreground/10">
+                  <Link href="/coaching" className="cursor-pointer w-full text-white">
                     Coaching
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
+                <DropdownMenuSeparator className="bg-border/50" />
+                <DropdownMenuItem onClick={() => logout()} className="cursor-pointer text-emotion-angry focus:text-emotion-angry focus:bg-muted-foreground/10">
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>

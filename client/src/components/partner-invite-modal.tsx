@@ -73,32 +73,32 @@ export default function PartnerInviteModal({ isOpen, onClose }: PartnerInviteMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md rounded-2xl">
+      <DialogContent className="sm:max-w-md rounded-2xl bg-muted border-border">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-neutral-800">Invite Your Partner</DialogTitle>
-          <DialogDescription className="text-neutral-500">
+          <DialogTitle className="text-xl font-semibold text-white">Invite Your Partner</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Generate a unique link to invite your partner to join you on Spousey.ai.
           </DialogDescription>
         </DialogHeader>
-        <div className="bg-neutral-50 rounded-xl p-4 mb-4">
-          <p className="text-sm text-neutral-500 mb-2">Your personal invitation link:</p>
+        <div className="bg-muted-foreground/10 rounded-xl p-4 mb-4 border border-border">
+          <p className="text-sm text-muted-foreground mb-2">Your personal invitation link:</p>
           <div className="flex">
             <Input
               value={inviteCode ? `${window.location.origin}/invite/${inviteCode}` : "Generate an invitation link"}
               readOnly
-              className="flex-1 bg-white p-2 text-sm border border-neutral-200 rounded-l-lg focus:ring-2 focus:ring-primary focus:outline-none"
+              className="flex-1 bg-black/40 p-2 text-sm border border-border text-white rounded-l-lg focus:ring-2 focus:ring-emotion-happy focus:outline-none"
             />
             {inviteCode ? (
               <Button
                 onClick={copyInviteLink}
-                className="bg-primary text-white px-3 py-2 rounded-r-lg hover:bg-primary-dark"
+                className="bg-emotion-happy text-black px-3 py-2 rounded-r-lg hover:bg-emotion-happy/90"
               >
                 <Copy className="h-4 w-4" />
               </Button>
             ) : (
               <Button
                 onClick={generateInviteCode}
-                className="bg-primary text-white px-3 py-2 rounded-r-lg hover:bg-primary-dark"
+                className="bg-emotion-happy text-black px-3 py-2 rounded-r-lg hover:bg-emotion-happy/90"
                 disabled={isGenerating}
               >
                 {isGenerating ? "Generating..." : "Generate"}
@@ -109,12 +109,12 @@ export default function PartnerInviteModal({ isOpen, onClose }: PartnerInviteMod
 
         {inviteCode && (
           <div className="mb-6">
-            <h4 className="font-medium text-neutral-800 mb-2">Share via:</h4>
+            <h4 className="font-medium text-white mb-2">Share via:</h4>
             <div className="flex space-x-3">
               <Button
                 onClick={shareViaMessenger}
                 variant="outline"
-                className="flex-1 gap-2 text-blue-600 hover:text-blue-700 border-neutral-200"
+                className="flex-1 gap-2 text-blue-400 hover:text-blue-300 border-border bg-muted"
               >
                 <Facebook className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only sm:text-xs">Messenger</span>
@@ -123,7 +123,7 @@ export default function PartnerInviteModal({ isOpen, onClose }: PartnerInviteMod
               <Button
                 onClick={shareViaWhatsApp}
                 variant="outline"
-                className="flex-1 gap-2 text-green-600 hover:text-green-700 border-neutral-200"
+                className="flex-1 gap-2 text-green-400 hover:text-green-300 border-border bg-muted"
               >
                 <FaWhatsapp className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only sm:text-xs">WhatsApp</span>
@@ -132,7 +132,7 @@ export default function PartnerInviteModal({ isOpen, onClose }: PartnerInviteMod
               <Button
                 onClick={shareViaEmail}
                 variant="outline"
-                className="flex-1 gap-2 text-neutral-800 hover:text-neutral-900 border-neutral-200"
+                className="flex-1 gap-2 text-white hover:text-white/80 border-border bg-muted"
               >
                 <Mail className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only sm:text-xs">Email</span>
@@ -143,7 +143,7 @@ export default function PartnerInviteModal({ isOpen, onClose }: PartnerInviteMod
 
         <Button
           onClick={onClose}
-          className="w-full bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition duration-200"
+          className="w-full bg-emotion-happy hover:bg-emotion-happy/90 text-black font-medium rounded-xl transition duration-200"
         >
           Done
         </Button>

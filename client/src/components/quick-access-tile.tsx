@@ -22,18 +22,18 @@ export default function QuickAccessTile({
   linkTextColor,
 }: QuickAccessTileProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
+    <div className="bg-muted rounded-2xl border border-border overflow-hidden hover:border-border/80 transition-all duration-200">
       <div className="p-6 flex items-start space-x-4">
-        <div className={`flex-shrink-0 h-12 w-12 rounded-full ${iconBgColor} bg-opacity-20 flex items-center justify-center`}>
+        <div className={`flex-shrink-0 h-12 w-12 rounded-full ${iconBgColor} border border-border flex items-center justify-center`}>
           {icon}
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-medium text-neutral-800">{title}</h3>
-          <p className="mt-1 text-sm text-neutral-500">{description}</p>
+          <h3 className="text-lg font-medium text-white">{title}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="ml-auto">
           <Link href={linkUrl}>
-            <a className={`inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-xl ${linkTextColor} ${linkBgColor} bg-opacity-10 hover:bg-opacity-20`}>
+            <a className={`inline-flex items-center px-4 py-1.5 text-sm font-medium rounded-full ${linkTextColor} ${linkBgColor}`}>
               {linkText}
             </a>
           </Link>

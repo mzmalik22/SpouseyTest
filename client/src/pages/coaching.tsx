@@ -53,23 +53,23 @@ export default function Coaching() {
   };
 
   return (
-    <div className="h-full min-h-screen flex flex-col bg-neutral-50">
+    <div className="h-full min-h-screen flex flex-col bg-black">
       <Navbar />
       
       <div className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center mb-6">
           <Link href="/">
-            <a className="mr-4 text-neutral-500 hover:text-neutral-800">
+            <a className="mr-4 text-muted-foreground hover:text-white">
               <ArrowLeft className="h-5 w-5" />
             </a>
           </Link>
-          <h2 className="text-xl font-semibold text-neutral-800">Relationship Coaching</h2>
+          <h2 className="text-xl font-semibold text-white">Relationship Coaching</h2>
         </div>
         
         {/* Loading State */}
         {(topicsLoading || (contentLoading && topicId)) && (
           <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emotion-peaceful"></div>
           </div>
         )}
         
@@ -78,8 +78,8 @@ export default function Coaching() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Topic Selection Sidebar */}
             <div className="md:col-span-1">
-              <div className="bg-white rounded-2xl shadow-sm p-4">
-                <h3 className="font-medium text-neutral-800 mb-4">Coaching Topics</h3>
+              <div className="bg-muted rounded-2xl border border-border p-4">
+                <h3 className="font-medium text-white mb-4">Coaching Topics</h3>
                 
                 <ul className="space-y-2">
                   {topics.map((topic: CoachingTopic) => (
@@ -104,8 +104,8 @@ export default function Coaching() {
                   nextTopic={nextTopic}
                 />
               ) : !contentLoading && (
-                <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
-                  <p className="text-neutral-500">Select a topic from the sidebar to view content.</p>
+                <div className="bg-muted rounded-2xl border border-border p-6 text-center">
+                  <p className="text-muted-foreground">Select a topic from the sidebar to view content.</p>
                 </div>
               )}
             </div>

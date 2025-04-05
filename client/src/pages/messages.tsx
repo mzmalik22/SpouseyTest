@@ -38,26 +38,26 @@ export default function Messages() {
   };
 
   return (
-    <div className="h-full min-h-screen flex flex-col bg-neutral-50">
+    <div className="h-full min-h-screen flex flex-col bg-black">
       <Navbar />
       
       <div className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center mb-6">
           <Link href="/">
-            <a className="mr-4 text-neutral-500 hover:text-neutral-800">
+            <a className="mr-4 text-muted-foreground hover:text-white">
               <ArrowLeft className="h-5 w-5" />
             </a>
           </Link>
-          <h2 className="text-xl font-semibold text-neutral-800">Messages with {getPartnerName()}</h2>
+          <h2 className="text-xl font-semibold text-white">Messages with {getPartnerName()}</h2>
         </div>
         
         {/* Messages List */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <div className="flex-1 bg-muted rounded-2xl border border-border overflow-hidden flex flex-col">
           {/* Message History */}
           <div className="flex-1 p-4 overflow-y-auto" style={{ scrollBehavior: "smooth" }}>
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-emotion-happy"></div>
               </div>
             ) : messages && messages.length > 0 ? (
               <>
@@ -67,7 +67,7 @@ export default function Messages() {
                 <div ref={messagesEndRef} />
               </>
             ) : (
-              <div className="flex items-center justify-center h-full text-neutral-500">
+              <div className="flex items-center justify-center h-full text-muted-foreground">
                 No messages yet. Start a conversation!
               </div>
             )}
