@@ -93,21 +93,33 @@ export default function NicknameForm({ onSaved }: NicknameFormProps) {
         nickname: user?.nickname || "Me"
       };
       
+      console.log("Submitting nickname form with payload:", payload);
+      
       const response = await apiRequest("POST", "/api/user/nickname", payload);
+      
+      console.log("Nickname update response status:", response.status);
       
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Nickname update error response:", errorData);
         throw new Error(errorData.message || "Failed to save nicknames");
       }
       
-      const updatedUser = await response.json().catch(() => null);
+      const updatedUser = await response.json().catch((err) => {
+        console.error("Error parsing response JSON:", err);
+        return null;
+      });
+      
+      console.log("Updated user data received:", updatedUser);
       
       if (updatedUser) {
         // Update the user in the cache
         queryClient.setQueryData(["/api/auth/current-user"], updatedUser);
+        console.log("Updated user in query cache");
         
         // Refresh user data
         if (refreshUser) {
+          console.log("Refreshing user data from server");
           await refreshUser();
         }
       }

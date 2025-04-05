@@ -539,6 +539,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const currentUser = req.user as any;
     const { nickname, partnerNickname } = req.body;
     
+    console.log("Nickname update request:", {
+      userId: currentUser.id,
+      nickname,
+      partnerNickname
+    });
+    
     if (!nickname && !partnerNickname) {
       return res.status(400).json({ message: "At least one nickname must be provided" });
     }
@@ -549,11 +555,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (nickname) updateData.nickname = nickname;
       if (partnerNickname) updateData.partnerNickname = partnerNickname;
       
+      console.log("Updating user with data:", updateData);
+      
       const updatedUser = await storage.updateUser(currentUser.id, updateData);
       
       if (!updatedUser) {
+        console.log("User not found for update:", currentUser.id);
         return res.status(404).json({ message: "User not found" });
       }
+      
+      console.log("User updated successfully:", {
+        id: updatedUser.id,
+        nickname: updatedUser.nickname,
+        partnerNickname: updatedUser.partnerNickname
+      });
       
       // Create activity for updating nicknames
       await storage.createActivity({

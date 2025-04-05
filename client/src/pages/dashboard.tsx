@@ -27,6 +27,9 @@ export default function Dashboard() {
   const partnerNicknames = user?.partnerNickname 
     ? user.partnerNickname.split(',').map(nickname => nickname.trim()).filter(Boolean) 
     : [];
+    
+  console.log("Dashboard: Current user data:", user);
+  console.log("Dashboard: Parsed partner nicknames:", partnerNicknames);
 
   // Function to handle completing nickname edit
   const handleNicknameFormSaved = () => {
