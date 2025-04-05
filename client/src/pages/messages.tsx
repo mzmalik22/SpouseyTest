@@ -14,7 +14,7 @@ export default function Messages() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Fetch messages
-  const { data: messages, isLoading } = useQuery({
+  const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
     enabled: !!user,
     refetchInterval: 5000, // Poll for new messages every 5 seconds
@@ -54,21 +54,28 @@ export default function Messages() {
         {/* Messages List */}
         <div className="flex-1 bg-muted rounded-2xl border border-border overflow-hidden flex flex-col">
           {/* Message History */}
-          <div className="flex-1 p-4 overflow-y-auto" style={{ scrollBehavior: "smooth" }}>
+          <div className="flex-1 p-4 overflow-y-auto" style={{ 
+            scrollBehavior: "smooth", 
+            maxHeight: messages.length > 0 ? "calc(80vh - 180px)" : "auto", 
+            minHeight: messages.length > 0 ? "300px" : "180px"
+          }}>
             {isLoading ? (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-emotion-happy"></div>
               </div>
-            ) : messages && messages.length > 0 ? (
+            ) : messages.length > 0 ? (
               <>
-                {messages.map((message: Message) => (
+                {messages.map((message) => (
                   <MessageBubble key={message.id} message={message} />
                 ))}
                 <div ref={messagesEndRef} />
               </>
             ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                No messages yet. Start a conversation!
+              <div className="flex flex-col items-center justify-center h-full text-center py-6">
+                <div className="bg-black/40 p-4 rounded-xl border border-border/50 max-w-sm">
+                  <p className="text-muted-foreground mb-2">No messages yet.</p>
+                  <p className="text-sm text-muted-foreground/80">Start a conversation by typing a message below!</p>
+                </div>
               </div>
             )}
           </div>
