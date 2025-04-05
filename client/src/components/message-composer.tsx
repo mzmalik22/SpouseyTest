@@ -303,6 +303,20 @@ export default function MessageComposer({ onMessageSent }: MessageComposerProps)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        // Special handling for no partner connected case
+        if (errorData.message === "No partner connected") {
+          // Close the dialog and reset composer even though send failed
+          // This provides better UX when demoing without a partner
+          resetComposer();
+          setDialogOpen(false);
+          
+          toast({
+            title: "Can't send message",
+            description: "You need to connect with a partner first. Use the partner invite feature to connect.",
+            variant: "destructive",
+          });
+          return; // Exit early with clean UI
+        }
         throw new Error(errorData.message || "Failed to send message");
       }
       
