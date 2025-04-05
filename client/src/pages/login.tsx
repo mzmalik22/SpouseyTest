@@ -6,14 +6,12 @@ import { Link } from "wouter";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/context/auth-context";
 import spouseyLogo from "@/assets/spousey-logo-transparent.png";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
-  rememberMe: z.boolean().optional(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -27,7 +25,6 @@ export default function Login() {
     defaultValues: {
       email: "",
       password: "",
-      rememberMe: false,
     },
   });
 
@@ -97,25 +94,7 @@ export default function Login() {
                 )}
               />
 
-              <div className="flex items-center justify-between">
-                <FormField
-                  control={form.control}
-                  name="rememberMe"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={isLoading}
-                          className="border-muted-foreground data-[state=checked]:bg-emotion-happy data-[state=checked]:border-emotion-happy"
-                        />
-                      </FormControl>
-                      <FormLabel className="text-sm text-muted-foreground">Remember me</FormLabel>
-                    </FormItem>
-                  )}
-                />
-
+              <div className="flex items-center justify-end">
                 <div className="text-sm">
                   <a href="#" className="font-medium text-emotion-peaceful hover:text-white">
                     Forgot password?

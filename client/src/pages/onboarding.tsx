@@ -7,24 +7,20 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { maritalStatusValues, relationshipConditionValues } from "@shared/schema";
+import { relationshipConditionValues } from "@shared/schema";
 import { HeartHandshake, AlertTriangle, ThumbsUp } from "lucide-react";
 
-// Import MaritalStatus and RelationshipCondition types
-import { MaritalStatus, RelationshipCondition } from "@shared/schema";
+// Import RelationshipCondition type
+import { RelationshipCondition } from "@shared/schema";
 
 // Define type for form state
 type OnboardingState = {
-  step: number;
-  maritalStatus: MaritalStatus | null;
   relationshipCondition: RelationshipCondition | null;
 };
 
 export default function Onboarding() {
   const { user, refreshUser } = useAuth();
   const [state, setState] = useState<OnboardingState>({
-    step: 1,
-    maritalStatus: null,
     relationshipCondition: null,
   });
   const [loading, setLoading] = useState(false);
@@ -44,22 +40,7 @@ export default function Onboarding() {
     }
   }, [user, setLocation]);
 
-  const handleNext = () => {
-    if (state.step === 1 && !state.maritalStatus) {
-      toast({
-        title: "Please select an option",
-        description: "Please select your marital status to continue.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setState((prev) => ({ ...prev, step: prev.step + 1 }));
-  };
-
-  const handleBack = () => {
-    setState((prev) => ({ ...prev, step: prev.step - 1 }));
-  };
+  // No step navigation needed for single-step
 
   const handleComplete = async () => {
     if (!state.relationshipCondition) {
@@ -71,15 +52,11 @@ export default function Onboarding() {
       return;
     }
 
-    if (!state.maritalStatus || !state.relationshipCondition) {
-      // This shouldn't happen due to the validations above, but TypeScript needs it
-      return;
-    }
-
     setLoading(true);
     try {
       await apiRequest("POST", "/api/onboarding", {
-        maritalStatus: state.maritalStatus,
+        // Use a default marital status since we don't ask for it anymore
+        maritalStatus: "married", 
         relationshipCondition: state.relationshipCondition,
       });
       
@@ -103,41 +80,8 @@ export default function Onboarding() {
     }
   };
 
-  // Render marital status step
-  const renderStep1 = () => (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl text-center">Your Relationship Status</CardTitle>
-        <CardDescription className="text-center">
-          Help us understand your current relationship situation
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <RadioGroup
-          value={state.maritalStatus || ""}
-          onValueChange={(value) => setState((prev) => ({ ...prev, maritalStatus: value as MaritalStatus }))}
-          className="space-y-3"
-        >
-          {maritalStatusValues.map((status) => (
-            <div key={status} className="flex items-center space-x-2 border p-3 rounded-md hover:bg-muted/50 transition-colors">
-              <RadioGroupItem value={status} id={status} />
-              <Label htmlFor={status} className="flex-1 cursor-pointer capitalize">
-                {status}
-              </Label>
-            </div>
-          ))}
-        </RadioGroup>
-      </CardContent>
-      <CardFooter className="flex justify-end">
-        <Button onClick={handleNext} disabled={!state.maritalStatus}>
-          Next
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-
-  // Render relationship condition step
-  const renderStep2 = () => (
+  // Render relationship health form
+  const renderRelationshipHealthForm = () => (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl text-center">Current Relationship Health</CardTitle>
@@ -194,10 +138,7 @@ export default function Onboarding() {
           </div>
         </RadioGroup>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={handleBack}>
-          Back
-        </Button>
+      <CardFooter className="flex justify-end">
         <Button onClick={handleComplete} disabled={loading || !state.relationshipCondition}>
           {loading ? "Saving..." : "Complete"}
         </Button>
@@ -218,28 +159,7 @@ export default function Onboarding() {
         </p>
       </div>
 
-      <div className="flex items-center justify-center mb-8">
-        <div className="flex items-center">
-          <div 
-            className={`rounded-full h-8 w-8 flex items-center justify-center ${
-              state.step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            }`}
-          >
-            1
-          </div>
-          <div className={`h-1 w-16 ${state.step >= 2 ? "bg-primary" : "bg-muted"}`}></div>
-          <div 
-            className={`rounded-full h-8 w-8 flex items-center justify-center ${
-              state.step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            }`}
-          >
-            2
-          </div>
-        </div>
-      </div>
-
-      {state.step === 1 && renderStep1()}
-      {state.step === 2 && renderStep2()}
+      {renderRelationshipHealthForm()}
     </div>
   );
 }
