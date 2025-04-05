@@ -53,8 +53,16 @@ export default function CoachingSessions() {
       return await response.json();
     },
     onSuccess: (data: CoachingSession) => {
+      // Close the modal dialog
+      setNewSessionOpen(false);
+      setSessionTitle("");
+      
+      // Invalidate the query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions"] });
-      setLocation(`/coaching-sessions/${data.id}`);
+      
+      // Navigate to the new session page with a direct URL change for reliable navigation
+      window.location.href = `/coaching-sessions/${data.id}`;
+      
       toast({
         title: "Session created",
         description: "Your coaching session has been created.",
@@ -102,9 +110,10 @@ export default function CoachingSessions() {
       return;
     }
     
+    // Create the session and let onSuccess handle the redirection
     createSessionMutation.mutate({ title: sessionTitle });
-    setNewSessionOpen(false);
-    setSessionTitle("");
+    // Don't need to set these here as they'll be redundant
+    // The navigation will happen in the onSuccess callback
   };
   
   // Handle sending message
@@ -188,7 +197,7 @@ export default function CoachingSessions() {
                         : 'bg-gray-900/20 text-gray-500'
                   }`}>
                     {sessionData.session?.status 
-                      ? sessionData.session.status.charAt(0).toUpperCase() + sessionData.session.status.slice(1) 
+                      ? `${sessionData.session.status.charAt(0).toUpperCase()}${sessionData.session.status.slice(1)}` 
                       : 'Active'}
                   </span>
                 </div>
@@ -322,7 +331,9 @@ export default function CoachingSessions() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-white text-lg">{session.title}</CardTitle>
                     <CardDescription>
-                      {formatDistanceToNow(new Date(session.lastMessageAt), { addSuffix: true })}
+                      {session.lastMessageAt 
+                        ? formatDistanceToNow(new Date(session.lastMessageAt), { addSuffix: true })
+                        : 'Just now'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -334,7 +345,7 @@ export default function CoachingSessions() {
                             ? 'bg-blue-900/20 text-blue-500'
                             : 'bg-gray-900/20 text-gray-500'
                       }`}>
-                        {session.status && session.status.charAt(0).toUpperCase() + session.status.slice(1) || 'Active'}
+                        {session.status ? session.status.charAt(0).toUpperCase() + session.status.slice(1) : 'Active'}
                       </span>
                     </div>
                   </CardContent>
@@ -342,7 +353,11 @@ export default function CoachingSessions() {
                     <Button 
                       variant="outline" 
                       className="w-full text-white border-border hover:bg-background"
-                      onClick={() => setLocation(`/coaching-sessions/${session.id}`)}
+                      onClick={() => {
+                        // Force re-fetch the session data when redirecting
+                        queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions", session.id] });
+                        window.location.href = `/coaching-sessions/${session.id}`;
+                      }}
                     >
                       Continue Session
                     </Button>
