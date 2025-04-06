@@ -11,7 +11,11 @@ import {
   type Activity,
   type InsertActivity,
   type Notification,
-  type InsertNotification
+  type InsertNotification,
+  type CoachingSession,
+  type InsertCoachingSession,
+  type SessionMessage,
+  type InsertSessionMessage
 } from "@shared/schema";
 import { pool } from "./db";
 import session from "express-session";
@@ -41,6 +45,17 @@ export interface IStorage {
   createCoachingTopic(topic: InsertCoachingTopic): Promise<CoachingTopic>;
   getCoachingContents(topicId: number): Promise<CoachingContent[]>;
   createCoachingContent(content: InsertCoachingContent): Promise<CoachingContent>;
+  
+  // Coaching Sessions methods
+  getUserCoachingSessions(userId: number): Promise<CoachingSession[]>;
+  getCoachingSession(id: number): Promise<CoachingSession | undefined>;
+  createCoachingSession(session: InsertCoachingSession): Promise<CoachingSession>;
+  updateCoachingSession(id: number, data: Partial<CoachingSession>): Promise<CoachingSession | undefined>;
+  deleteCoachingSession(id: number): Promise<boolean>;
+  
+  // Session Messages methods
+  getSessionMessages(sessionId: number): Promise<SessionMessage[]>;
+  createSessionMessage(message: InsertSessionMessage): Promise<SessionMessage>;
   
   // Activity methods
   getUserActivities(userId: number, limit?: number): Promise<Activity[]>;
@@ -72,6 +87,8 @@ if (!globalData.__spouseyAppStorage) {
     messages: new Map<number, Message>(),
     coachingTopics: new Map<number, CoachingTopic>(),
     coachingContents: new Map<number, CoachingContent>(),
+    coachingSessions: new Map<number, CoachingSession>(),
+    sessionMessages: new Map<number, SessionMessage>(),
     activities: new Map<number, Activity>(),
     notifications: new Map<number, Notification>(),
     userIdCounter: 1,
@@ -80,6 +97,8 @@ if (!globalData.__spouseyAppStorage) {
     contentIdCounter: 1,
     activityIdCounter: 1,
     notificationIdCounter: 1,
+    sessionIdCounter: 1,
+    sessionMessageIdCounter: 1,
     sessionStore: new MemoryStore({ 
       checkPeriod: 86400000 // prune expired entries every 24h
     })
@@ -91,6 +110,8 @@ export class MemStorage implements IStorage {
   private messages: Map<number, Message>;
   private coachingTopics: Map<number, CoachingTopic>;
   private coachingContents: Map<number, CoachingContent>;
+  private coachingSessions: Map<number, CoachingSession>;
+  private sessionMessages: Map<number, SessionMessage>;
   private activities: Map<number, Activity>;
   private notifications: Map<number, Notification>;
   private userIdCounter: number;
@@ -99,6 +120,8 @@ export class MemStorage implements IStorage {
   private contentIdCounter: number;
   private activityIdCounter: number;
   private notificationIdCounter: number;
+  private sessionIdCounter: number;
+  private sessionMessageIdCounter: number;
   sessionStore: session.Store;
 
   constructor() {
@@ -108,6 +131,8 @@ export class MemStorage implements IStorage {
     this.messages = data.messages;
     this.coachingTopics = data.coachingTopics;
     this.coachingContents = data.coachingContents;
+    this.coachingSessions = data.coachingSessions;
+    this.sessionMessages = data.sessionMessages;
     this.activities = data.activities;
     this.notifications = data.notifications;
     this.userIdCounter = data.userIdCounter;
@@ -116,6 +141,8 @@ export class MemStorage implements IStorage {
     this.contentIdCounter = data.contentIdCounter;
     this.activityIdCounter = data.activityIdCounter;
     this.notificationIdCounter = data.notificationIdCounter;
+    this.sessionIdCounter = data.sessionIdCounter;
+    this.sessionMessageIdCounter = data.sessionMessageIdCounter;
     this.sessionStore = data.sessionStore;
   }
 
@@ -294,6 +321,124 @@ export class MemStorage implements IStorage {
     globalData.__spouseyAppStorage.coachingContents.set(id, content);
     
     return content;
+  }
+
+  // Coaching Sessions methods
+  async getUserCoachingSessions(userId: number): Promise<CoachingSession[]> {
+    return Array.from(this.coachingSessions.values())
+      .filter(session => session.userId === userId)
+      .sort((a, b) => {
+        const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return dateB - dateA; // Descending order (newest first)
+      });
+  }
+
+  async getCoachingSession(id: number): Promise<CoachingSession | undefined> {
+    return this.coachingSessions.get(id);
+  }
+
+  async createCoachingSession(insertSession: InsertCoachingSession): Promise<CoachingSession> {
+    const id = this.sessionIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.sessionIdCounter = this.sessionIdCounter;
+    
+    const now = new Date();
+    const session: CoachingSession = {
+      ...insertSession,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.coachingSessions.set(id, session);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.coachingSessions.set(id, session);
+    
+    // Create an activity for the user
+    this.createActivity({
+      userId: insertSession.userId,
+      type: 'coaching',
+      description: `Started a new coaching session: ${insertSession.title}`
+    }).catch(err => {
+      console.error('Failed to create activity:', err);
+    });
+    
+    return session;
+  }
+
+  async updateCoachingSession(id: number, data: Partial<CoachingSession>): Promise<CoachingSession | undefined> {
+    const session = await this.getCoachingSession(id);
+    if (!session) return undefined;
+    
+    const updatedSession = { 
+      ...session, 
+      ...data,
+      updatedAt: new Date() // Always update the updatedAt timestamp
+    };
+    
+    this.coachingSessions.set(id, updatedSession);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.coachingSessions.set(id, updatedSession);
+    
+    return updatedSession;
+  }
+
+  async deleteCoachingSession(id: number): Promise<boolean> {
+    const session = await this.getCoachingSession(id);
+    if (!session) return false;
+    
+    // Delete the session
+    this.coachingSessions.delete(id);
+    globalData.__spouseyAppStorage.coachingSessions.delete(id);
+    
+    // Delete all associated messages
+    const sessionMessages = await this.getSessionMessages(id);
+    for (const message of sessionMessages) {
+      this.sessionMessages.delete(message.id);
+      globalData.__spouseyAppStorage.sessionMessages.delete(message.id);
+    }
+    
+    return true;
+  }
+
+  // Session Messages methods
+  async getSessionMessages(sessionId: number): Promise<SessionMessage[]> {
+    return Array.from(this.sessionMessages.values())
+      .filter(message => message.sessionId === sessionId)
+      .sort((a, b) => {
+        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return dateA - dateB; // Ascending order (oldest first)
+      });
+  }
+
+  async createSessionMessage(insertMessage: InsertSessionMessage): Promise<SessionMessage> {
+    const id = this.sessionMessageIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.sessionMessageIdCounter = this.sessionMessageIdCounter;
+    
+    const timestamp = new Date();
+    const message: SessionMessage = {
+      ...insertMessage,
+      id,
+      timestamp
+    };
+    
+    this.sessionMessages.set(id, message);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.sessionMessages.set(id, message);
+    
+    // Update the session's updatedAt time
+    const session = await this.getCoachingSession(insertMessage.sessionId);
+    if (session) {
+      await this.updateCoachingSession(session.id, { updatedAt: timestamp });
+    }
+    
+    return message;
   }
 
   // Activity methods

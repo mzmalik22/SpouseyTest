@@ -7,6 +7,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcrypt";
 import { refineMessage, refineMessageAllVibes } from "./openai";
+import OpenAI from "openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Using in-memory storage
@@ -583,6 +584,327 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Nickname update error:", error);
       return res.status(500).json({ message: "Failed to update nicknames" });
+    }
+  });
+
+  // Coaching Sessions API
+  
+  // Get all coaching sessions for the current user
+  app.get("/api/coaching/sessions", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const userId = (req.user as User).id;
+      const sessions = await storage.getUserCoachingSessions(userId);
+      return res.json(sessions);
+    } catch (error) {
+      console.error("Error fetching coaching sessions:", error);
+      return res.status(500).json({ message: "Failed to fetch coaching sessions" });
+    }
+  });
+
+  // Get a specific coaching session by ID
+  app.get("/api/coaching/sessions/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const sessionId = parseInt(req.params.id);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ message: "Invalid session ID" });
+      }
+
+      const session = await storage.getCoachingSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Security check: make sure the session belongs to the current user
+      const userId = (req.user as User).id;
+      if (session.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      return res.json(session);
+    } catch (error) {
+      console.error("Error fetching coaching session:", error);
+      return res.status(500).json({ message: "Failed to fetch coaching session" });
+    }
+  });
+
+  // Create a new coaching session
+  app.post("/api/coaching/sessions", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const userId = (req.user as User).id;
+      const { title, category } = req.body;
+
+      if (!title) {
+        return res.status(400).json({ message: "Title is required" });
+      }
+
+      const session = await storage.createCoachingSession({
+        userId,
+        title,
+        category: category || 'general'
+      });
+
+      return res.status(201).json(session);
+    } catch (error) {
+      console.error("Error creating coaching session:", error);
+      return res.status(500).json({ message: "Failed to create coaching session" });
+    }
+  });
+
+  // Update a coaching session
+  app.patch("/api/coaching/sessions/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const sessionId = parseInt(req.params.id);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ message: "Invalid session ID" });
+      }
+
+      const session = await storage.getCoachingSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Security check: make sure the session belongs to the current user
+      const userId = (req.user as User).id;
+      if (session.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { title, category } = req.body;
+      const updateData: Partial<any> = {};
+      if (title !== undefined) updateData.title = title;
+      if (category !== undefined) updateData.category = category;
+
+      const updatedSession = await storage.updateCoachingSession(sessionId, updateData);
+      return res.json(updatedSession);
+    } catch (error) {
+      console.error("Error updating coaching session:", error);
+      return res.status(500).json({ message: "Failed to update coaching session" });
+    }
+  });
+
+  // Delete a coaching session
+  app.delete("/api/coaching/sessions/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const sessionId = parseInt(req.params.id);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ message: "Invalid session ID" });
+      }
+
+      const session = await storage.getCoachingSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Security check: make sure the session belongs to the current user
+      const userId = (req.user as User).id;
+      if (session.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const success = await storage.deleteCoachingSession(sessionId);
+      if (success) {
+        return res.status(204).end();
+      } else {
+        return res.status(500).json({ message: "Failed to delete session" });
+      }
+    } catch (error) {
+      console.error("Error deleting coaching session:", error);
+      return res.status(500).json({ message: "Failed to delete coaching session" });
+    }
+  });
+
+  // Session Messages API
+
+  // Get all messages for a specific session
+  app.get("/api/coaching/sessions/:id/messages", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const sessionId = parseInt(req.params.id);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ message: "Invalid session ID" });
+      }
+
+      const session = await storage.getCoachingSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Security check: make sure the session belongs to the current user
+      const userId = (req.user as User).id;
+      if (session.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const messages = await storage.getSessionMessages(sessionId);
+      return res.json(messages);
+    } catch (error) {
+      console.error("Error fetching session messages:", error);
+      return res.status(500).json({ message: "Failed to fetch session messages" });
+    }
+  });
+
+  // Create a new message in a session
+  app.post("/api/coaching/sessions/:id/messages", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const sessionId = parseInt(req.params.id);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ message: "Invalid session ID" });
+      }
+
+      const session = await storage.getCoachingSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Security check: make sure the session belongs to the current user
+      const userId = (req.user as User).id;
+      if (session.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { content, role } = req.body;
+      if (!content) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+
+      if (!role || (role !== 'user' && role !== 'assistant')) {
+        return res.status(400).json({ message: "Role must be 'user' or 'assistant'" });
+      }
+
+      const message = await storage.createSessionMessage({
+        sessionId,
+        content,
+        role
+      });
+
+      return res.status(201).json(message);
+    } catch (error) {
+      console.error("Error creating session message:", error);
+      return res.status(500).json({ message: "Failed to create session message" });
+    }
+  });
+  
+  // AI Coaching Response API
+  
+  // Get AI-generated response for a coaching session
+  app.post("/api/coaching/ai-response", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { sessionId, messageHistory } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+      
+      if (!messageHistory || !Array.isArray(messageHistory)) {
+        return res.status(400).json({ message: "Message history is required and must be an array" });
+      }
+      
+      const session = await storage.getCoachingSession(parseInt(sessionId));
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Security check: make sure the session belongs to the current user
+      const userId = (req.user as User).id;
+      if (session.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Get current user for personalization
+      const currentUser = req.user as User;
+      
+      try {
+        const openai = new OpenAI({
+          apiKey: process.env.OPENAI_API_KEY
+        });
+        
+        // Build the messages array for OpenAI
+        const messages = [
+          {
+            role: "system", 
+            content: `You are Spousey, an AI relationship coach. Your expertise is in providing supportive, 
+            empathetic advice for relationships. This conversation is about: "${session.title}" in the 
+            category: "${session.category}".
+            
+            The user's name is ${currentUser.firstName || 'the user'} and their relationship status is 
+            ${currentUser.maritalStatus || 'unspecified'}.
+            
+            If they mention their partner, their partner's name is ${currentUser.partnerNickname || 'their partner'}.
+            
+            Always be supportive, non-judgmental, and focus on practical advice. Ask clarifying questions when needed.
+            
+            If a couple is experiencing severe issues (abuse, extreme conflict), kindly suggest professional help 
+            and emphasize that you're an AI assistant with limitations.`
+          }
+        ];
+        
+        // Add the message history to the conversation
+        messageHistory.forEach(msg => {
+          messages.push({
+            role: msg.role,
+            content: msg.content
+          });
+        });
+        
+        // Get response from OpenAI
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: 1000
+        });
+        
+        const aiResponse = response.choices[0].message.content;
+        
+        // Create the assistant message in storage
+        const message = await storage.createSessionMessage({
+          sessionId: parseInt(sessionId),
+          content: aiResponse,
+          role: 'assistant'
+        });
+        
+        return res.status(201).json(message);
+      } catch (error) {
+        console.error("OpenAI API error:", error);
+        return res.status(500).json({ 
+          message: "Failed to generate AI response", 
+          error: error.message 
+        });
+      }
+    } catch (error) {
+      console.error("Error generating AI response:", error);
+      return res.status(500).json({ message: "Failed to generate AI response" });
     }
   });
 

@@ -6,6 +6,7 @@ import { z } from "zod";
 export const maritalStatusValues = ['single', 'dating', 'engaged', 'married', 'divorced', 'widowed'] as const;
 export const relationshipConditionValues = ['critical', 'stable', 'improving'] as const;
 export const notificationTypeValues = ['message', 'activity', 'coaching', 'partner', 'system'] as const;
+export const sessionCategoryValues = ['relationship', 'communication', 'conflict', 'intimacy', 'future', 'general'] as const;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -57,6 +58,25 @@ export const activities = pgTable("activities", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// New table for coaching sessions
+export const coachingSessions = pgTable("coaching_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  category: text("category", { enum: sessionCategoryValues }).default('general'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// New table for coaching session messages (chat history)
+export const sessionMessages = pgTable("session_messages", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull().references(() => coachingSessions.id),
+  role: text("role").notNull(), // 'user' or 'assistant'
+  content: text("content").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
 // New table for notifications
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
@@ -77,11 +97,14 @@ export const insertCoachingTopicSchema = createInsertSchema(coachingTopics).omit
 export const insertCoachingContentSchema = createInsertSchema(coachingContents).omit({ id: true });
 export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, timestamp: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, timestamp: true, read: true, dismissed: true });
+export const insertCoachingSessionSchema = createInsertSchema(coachingSessions).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSessionMessageSchema = createInsertSchema(sessionMessages).omit({ id: true, timestamp: true });
 
 // Types
 export type MaritalStatus = typeof maritalStatusValues[number];
 export type RelationshipCondition = typeof relationshipConditionValues[number];
 export type NotificationType = typeof notificationTypeValues[number];
+export type SessionCategory = typeof sessionCategoryValues[number];
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -95,3 +118,7 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+export type InsertCoachingSession = z.infer<typeof insertCoachingSessionSchema>;
+export type CoachingSession = typeof coachingSessions.$inferSelect;
+export type InsertSessionMessage = z.infer<typeof insertSessionMessageSchema>;
+export type SessionMessage = typeof sessionMessages.$inferSelect;
