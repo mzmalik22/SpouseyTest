@@ -83,10 +83,9 @@ export default function Navbar() {
                     Messages
                   </Link>
                 </DropdownMenuItem>
-
                 <DropdownMenuItem asChild className="focus:bg-muted-foreground/10">
-                  <Link href="/coaching-sessions" className="cursor-pointer w-full text-white">
-                    Coaching Sessions
+                  <Link href="/coaching" className="cursor-pointer w-full text-white">
+                    Coaching
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-border/50" />

@@ -42,14 +42,6 @@ export interface IStorage {
   getCoachingContents(topicId: number): Promise<CoachingContent[]>;
   createCoachingContent(content: InsertCoachingContent): Promise<CoachingContent>;
   
-  // Coaching sessions methods
-  getUserCoachingSessions(userId: number): Promise<CoachingSession[]>;
-  getCoachingSession(id: number): Promise<CoachingSession | undefined>;
-  createCoachingSession(session: InsertCoachingSession): Promise<CoachingSession>;
-  updateCoachingSession(id: number, data: Partial<CoachingSession>): Promise<CoachingSession | undefined>;
-  getCoachingSessionMessages(sessionId: number): Promise<CoachingSessionMessage[]>;
-  createCoachingSessionMessage(message: InsertCoachingSessionMessage): Promise<CoachingSessionMessage>;
-  
   // Activity methods
   getUserActivities(userId: number, limit?: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
@@ -80,16 +72,12 @@ if (!globalData.__spouseyAppStorage) {
     messages: new Map<number, Message>(),
     coachingTopics: new Map<number, CoachingTopic>(),
     coachingContents: new Map<number, CoachingContent>(),
-    coachingSessions: new Map<number, CoachingSession>(),
-    coachingSessionMessages: new Map<number, CoachingSessionMessage>(),
     activities: new Map<number, Activity>(),
     notifications: new Map<number, Notification>(),
     userIdCounter: 1,
     messageIdCounter: 1,
     topicIdCounter: 1,
     contentIdCounter: 1,
-    sessionIdCounter: 1,
-    sessionMessageIdCounter: 1,
     activityIdCounter: 1,
     notificationIdCounter: 1,
     sessionStore: new MemoryStore({ 
@@ -103,16 +91,12 @@ export class MemStorage implements IStorage {
   private messages: Map<number, Message>;
   private coachingTopics: Map<number, CoachingTopic>;
   private coachingContents: Map<number, CoachingContent>;
-  private coachingSessions: Map<number, CoachingSession>;
-  private coachingSessionMessages: Map<number, CoachingSessionMessage>;
   private activities: Map<number, Activity>;
   private notifications: Map<number, Notification>;
   private userIdCounter: number;
   private messageIdCounter: number;
   private topicIdCounter: number;
   private contentIdCounter: number;
-  private sessionIdCounter: number;
-  private sessionMessageIdCounter: number;
   private activityIdCounter: number;
   private notificationIdCounter: number;
   sessionStore: session.Store;
@@ -124,16 +108,12 @@ export class MemStorage implements IStorage {
     this.messages = data.messages;
     this.coachingTopics = data.coachingTopics;
     this.coachingContents = data.coachingContents;
-    this.coachingSessions = data.coachingSessions;
-    this.coachingSessionMessages = data.coachingSessionMessages;
     this.activities = data.activities;
     this.notifications = data.notifications;
     this.userIdCounter = data.userIdCounter;
     this.messageIdCounter = data.messageIdCounter;
     this.topicIdCounter = data.topicIdCounter;
     this.contentIdCounter = data.contentIdCounter;
-    this.sessionIdCounter = data.sessionIdCounter;
-    this.sessionMessageIdCounter = data.sessionMessageIdCounter;
     this.activityIdCounter = data.activityIdCounter;
     this.notificationIdCounter = data.notificationIdCounter;
     this.sessionStore = data.sessionStore;
@@ -314,111 +294,6 @@ export class MemStorage implements IStorage {
     globalData.__spouseyAppStorage.coachingContents.set(id, content);
     
     return content;
-  }
-
-  // Coaching sessions methods
-  async getUserCoachingSessions(userId: number): Promise<CoachingSession[]> {
-    return Array.from(this.coachingSessions.values())
-      .filter(session => session.userId === userId)
-      .sort((a, b) => {
-        const dateA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-        const dateB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-        return dateB - dateA; // Descending order (newest first)
-      });
-  }
-
-  async getCoachingSession(id: number): Promise<CoachingSession | undefined> {
-    return this.coachingSessions.get(id);
-  }
-
-  async createCoachingSession(insertSession: InsertCoachingSession): Promise<CoachingSession> {
-    const id = this.sessionIdCounter++;
-    // Update global counter
-    globalData.__spouseyAppStorage.sessionIdCounter = this.sessionIdCounter;
-    
-    const now = new Date();
-    const session: CoachingSession = { 
-      ...insertSession, 
-      id,
-      lastMessageAt: now,
-      createdAt: now
-    };
-    
-    this.coachingSessions.set(id, session);
-    
-    // Explicitly update the global map
-    globalData.__spouseyAppStorage.coachingSessions.set(id, session);
-    
-    // Create a notification for the user
-    this.createNotification({
-      userId: insertSession.userId,
-      type: 'coaching',
-      title: 'New Coaching Session',
-      content: `Your new coaching session "${insertSession.title}" is ready`,
-      relatedId: id
-    }).catch(err => {
-      console.error('Failed to create notification:', err);
-    });
-    
-    // Also create an activity record
-    this.createActivity({
-      userId: insertSession.userId,
-      type: 'coaching',
-      description: `Started a new coaching session: ${insertSession.title}`
-    }).catch(err => {
-      console.error('Failed to create activity:', err);
-    });
-    
-    return session;
-  }
-
-  async updateCoachingSession(id: number, data: Partial<CoachingSession>): Promise<CoachingSession | undefined> {
-    const session = await this.getCoachingSession(id);
-    if (!session) return undefined;
-    
-    const updatedSession = { ...session, ...data };
-    this.coachingSessions.set(id, updatedSession);
-    
-    // Explicitly update the global map
-    globalData.__spouseyAppStorage.coachingSessions.set(id, updatedSession);
-    
-    return updatedSession;
-  }
-
-  async getCoachingSessionMessages(sessionId: number): Promise<CoachingSessionMessage[]> {
-    return Array.from(this.coachingSessionMessages.values())
-      .filter(message => message.sessionId === sessionId)
-      .sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dateA - dateB; // Ascending order (oldest first)
-      });
-  }
-
-  async createCoachingSessionMessage(insertMessage: InsertCoachingSessionMessage): Promise<CoachingSessionMessage> {
-    const id = this.sessionMessageIdCounter++;
-    // Update global counter
-    globalData.__spouseyAppStorage.sessionMessageIdCounter = this.sessionMessageIdCounter;
-    
-    const now = new Date();
-    const message: CoachingSessionMessage = {
-      ...insertMessage,
-      id,
-      createdAt: now
-    };
-    
-    this.coachingSessionMessages.set(id, message);
-    
-    // Explicitly update the global map
-    globalData.__spouseyAppStorage.coachingSessionMessages.set(id, message);
-    
-    // Update the last message timestamp in the session
-    const session = await this.getCoachingSession(insertMessage.sessionId);
-    if (session) {
-      await this.updateCoachingSession(session.id, { lastMessageAt: now });
-    }
-    
-    return message;
   }
 
   // Activity methods
