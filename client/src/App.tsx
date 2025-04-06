@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,6 +13,7 @@ import { useAuth, AuthProvider } from "./context/auth-context";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useIsMobile } from "./hooks/use-mobile";
+import { isNativePlatform } from "./lib/capacitor";
 
 // Layout component to handle different layouts for mobile vs desktop
 function AppLayout({ children, isAuthPage = false }: { children: React.ReactNode, isAuthPage?: boolean }) {
@@ -36,21 +37,21 @@ function AppLayout({ children, isAuthPage = false }: { children: React.ReactNode
       </main>
       
       {/* Mobile navigation bar at bottom - fixed positioning */}
-      {isMobile && (
+      {(isMobile || isNativePlatform()) && (
         <nav className="fixed bottom-0 left-0 right-0 bg-muted py-2 border-t border-border">
           <div className="container mx-auto flex justify-around items-center">
-            <a href="/" className="flex flex-col items-center p-2">
+            <Link href="/" className="flex flex-col items-center p-2">
               <span className="h-6 w-6 text-white">🏠</span>
               <span className="text-xs text-muted-foreground">Home</span>
-            </a>
-            <a href="/messages" className="flex flex-col items-center p-2">
+            </Link>
+            <Link href="/messages" className="flex flex-col items-center p-2">
               <span className="h-6 w-6 text-white">💬</span>
               <span className="text-xs text-muted-foreground">Messages</span>
-            </a>
-            <a href="/coaching" className="flex flex-col items-center p-2">
+            </Link>
+            <Link href="/coaching" className="flex flex-col items-center p-2">
               <span className="h-6 w-6 text-white">🧠</span>
               <span className="text-xs text-muted-foreground">Coaching</span>
-            </a>
+            </Link>
           </div>
         </nav>
       )}
