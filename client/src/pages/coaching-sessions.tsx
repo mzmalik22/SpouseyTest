@@ -1,18 +1,46 @@
-import { useEffect, useState, FormEvent, useRef } from "react";
-import Navbar from "@/components/navbar";
-import { useAuth } from "@/context/auth-context";
+import { useEffect, useRef, useState, FormEvent } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useParams, useLocation } from "wouter";
-import { ArrowLeft, MessageCircle, Plus, Calendar, Clock, Heart, User, UserPlus2, List, ListFilter as ListIcon } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CoachingSession, CoachingSessionMessage } from "@/lib/types";
-import { formatDistanceToNow, format } from "date-fns";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { useParams, useLocation } from "wouter";
+import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { format, formatDistanceToNow } from "date-fns";
+
+// UI components
+import Navbar from "@/components/navbar";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+// Icons
+import { 
+  ArrowLeft, 
+  Calendar, 
+  Clock, 
+  Heart, 
+  List as ListIcon, 
+  MessageCircle, 
+  Plus, 
+  User, 
+  UserPlus2 
+} from "lucide-react";
+
+// Types from schema
+import { CoachingSession, CoachingTopic } from "@shared/schema";
 
 interface SessionResponse {
   session: CoachingSession;
@@ -55,30 +83,19 @@ export default function CoachingSessions() {
       return await response.json();
     },
     onSuccess: (data: CoachingSession) => {
-      const newSessionUrl = `/coaching-sessions/${data.id}`;
-      console.log("Session created successfully, navigating to:", newSessionUrl);
-      
-      // Close the modal dialog if it's open
       setNewSessionOpen(false);
       setSessionTitle("");
       
       // Invalidate the query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/coaching/sessions"] });
       
-      // Ensure we navigate to the new session
-      setTimeout(() => {
-        window.location.href = newSessionUrl;
-      }, 100);
+      // Navigate to the new session
+      setLocation(`/coaching-sessions/${data.id}`);
       
       toast({
         title: "Session created",
         description: "Your coaching session has been created.",
       });
-      
-      // Directly navigate to the new session
-      setTimeout(() => {
-        setLocation(`/coaching-sessions/${data.id}`);
-      }, 100); // Short timeout to ensure state updates complete first
     },
     onError: (error: Error) => {
       toast({
@@ -100,7 +117,6 @@ export default function CoachingSessions() {
   // Effect to scroll to bottom when messages change or when session data loads
   useEffect(() => {
     if (sessionData?.messages?.length) {
-      // Small delay to ensure DOM has updated
       setTimeout(scrollToBottom, 100);
     }
   }, [sessionData?.messages]);
@@ -108,22 +124,12 @@ export default function CoachingSessions() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { sessionId: string; content: string; isUserMessage: boolean }) => {
-      try {
-        const response = await apiRequest("POST", `/api/coaching/sessions/${data.sessionId}/messages`, {
-          content: data.content,
-          isUserMessage: data.isUserMessage
-        });
-        
-        // Check if the response is ok before trying to parse JSON
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-        }
-        
-        return await response.json();
-      } catch (error) {
-        console.error("Error in sendMessageMutation:", error);
-        throw error; // Re-throw to trigger onError
-      }
+      const response = await apiRequest("POST", `/api/coaching/sessions/${data.sessionId}/messages`, {
+        content: data.content,
+        isUserMessage: data.isUserMessage
+      });
+      
+      return await response.json();
     },
     onSuccess: () => {
       // Invalidate the query to refresh messages
@@ -145,16 +151,15 @@ export default function CoachingSessions() {
     }
   });
   
-  // Handle creating new session - automatically using a default title
+  // Handle creating new session
   const handleCreateSession = (e?: FormEvent) => {
     if (e) e.preventDefault();
     
     // Generate a default title based on the current time
     const defaultTitle = `Coaching session - ${new Date().toLocaleDateString()}`;
     
-    // Create the session and let onSuccess handle the redirection
+    // Create the session
     createSessionMutation.mutate({ title: sessionTitle.trim() || defaultTitle });
-    // Navigation will happen in the onSuccess callback
   };
   
   // Handle sending message
@@ -162,7 +167,6 @@ export default function CoachingSessions() {
     e.preventDefault();
     if (!newMessage.trim() || !sessionId) return;
     
-    // Set a loading state for better UX
     const loadingMessage = newMessage;
     setNewMessage("");
     
@@ -172,39 +176,6 @@ export default function CoachingSessions() {
       content: loadingMessage,
       isUserMessage: true
     });
-    
-    // The coach response will be automatically generated by the server's API endpoint
-    // No need for manual response generation here as we've enhanced the server to do this
-  };
-  
-  // This function is no longer used as we're now using the server-side AI response
-  // Kept for reference in case we need to revert or modify the approach
-  const generateCoachResponse = async (userMessage: string) => {
-    try {
-      // Fetch previous messages to provide as context
-      const sessionResponse = await apiRequest("GET", `/api/coaching/sessions/${sessionId}`);
-      const sessionData = await sessionResponse.json();
-      
-      // Format messages for context (limit to last 10 messages)
-      const conversationHistory = sessionData.messages
-        .slice(-10)
-        .map((msg: any) => ({
-          content: msg.content,
-          isUserMessage: msg.isUserMessage
-        }));
-      
-      // Call the OpenAI-powered endpoint for a real AI response
-      const response = await apiRequest("POST", "/api/coaching/generate-response", {
-        message: userMessage,
-        conversationHistory
-      });
-      
-      const data = await response.json();
-      return data.message || "I understand. Could you tell me more about that?";
-    } catch (error) {
-      console.error("Error generating coach response:", error);
-      return "I'm here to listen. What else would you like to share about your relationship?";
-    }
   };
   
   // Show loading indicator while fetching session data
@@ -219,235 +190,165 @@ export default function CoachingSessions() {
     );
   }
   
-  // If viewing a specific session and data is loaded
+  // If viewing a specific session
   if (sessionId && sessionData && sessionData.session) {
     return (
       <div className="h-full min-h-screen flex flex-col bg-black">
         <Navbar />
         
-        <div className="flex-1 flex max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* Sidebar with sessions list */}
-          <div className="w-64 mr-6 hidden md:block">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Your Sessions</h3>
-              <Button 
-                size="sm"
-                variant="ghost"
+        <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto px-4 sm:px-6 py-6">
+          {/* Session header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <button 
                 onClick={() => setLocation('/coaching-sessions')}
-                className="text-muted-foreground hover:text-white"
+                className="mr-4 text-muted-foreground hover:text-white"
               >
-                <ListIcon className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {/* Sessions list in sidebar */}
-            <div className="space-y-2 max-h-[80vh] overflow-y-auto pr-2">
-              {sessions && sessions.map((session) => (
-                <div 
-                  key={session.id}
-                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                    sessionId && String(session.id) === sessionId 
-                      ? 'bg-muted border-emotion-peaceful' 
-                      : 'bg-background border-border hover:border-border/80'
-                  }`}
-                  onClick={() => setLocation(`/coaching-sessions/${session.id}`)}
-                >
-                  <div className="font-medium text-white text-sm mb-1 truncate">{session.title}</div>
-                  <div className="flex items-center justify-between">
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${
-                      session.status === 'active' 
-                        ? 'bg-green-900/20 text-green-500' 
-                        : session.status === 'completed'
-                          ? 'bg-blue-900/20 text-blue-500'
-                          : 'bg-gray-900/20 text-gray-500'
-                    }`}>
-                      {session.status ? session.status.charAt(0).toUpperCase() + session.status.slice(1) : 'Active'}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {session.lastMessageAt 
-                        ? formatDistanceToNow(new Date(session.lastMessageAt), { addSuffix: true })
-                        : 'Just now'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              
-              {/* New session button in sidebar */}
-              <Button 
-                variant="outline" 
-                className="w-full mt-4 border-dashed border-border hover:border-emotion-peaceful"
-                onClick={() => setNewSessionOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Session
-              </Button>
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h2 className="text-xl font-semibold text-white">
+                {sessionData.session?.title || "Coaching Session"}
+              </h2>
             </div>
           </div>
           
-          {/* Main chat area */}
-          <div className="flex-1 flex flex-col">
-            <div className="flex items-center justify-between mb-6">
+          {/* Session info card */}
+          <div className="bg-muted rounded-lg border border-border p-3 mb-4 text-sm">
+            <div className="flex flex-wrap gap-4 items-center">
+              {sessionData.topic && (
+                <div className="flex items-center">
+                  <span className="text-muted-foreground mr-1">Topic:</span>
+                  <span className="text-white">{sessionData.topic.title}</span>
+                </div>
+              )}
+              
               <div className="flex items-center">
-                <button 
-                  onClick={() => setLocation('/coaching-sessions')}
-                  className="md:hidden mr-4 text-muted-foreground hover:text-white"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </button>
-                <h2 className="text-xl font-semibold text-white">
-                  {sessionData.session?.title || "Coaching Session"}
-                </h2>
+                <span className="text-muted-foreground mr-1">Status:</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                  sessionData.session?.status === 'active' 
+                    ? 'bg-green-900/20 text-green-500' 
+                    : sessionData.session?.status === 'completed'
+                      ? 'bg-blue-900/20 text-blue-500'
+                      : 'bg-gray-900/20 text-gray-500'
+                }`}>
+                  {sessionData.session?.status 
+                    ? `${sessionData.session.status.charAt(0).toUpperCase()}${sessionData.session.status.slice(1)}` 
+                    : 'Active'}
+                </span>
               </div>
               
-              {/* Mobile menu button for sessions */}
-              <Button
-                variant="ghost" 
-                size="sm"
-                className="md:hidden"
-                onClick={() => {
-                  // Open mobile sessions list
-                  setNewSessionOpen(true);
-                }}
-              >
-                <List className="h-5 w-5" />
-              </Button>
-            </div>
-            
-            <div className="bg-muted rounded-2xl border border-border p-3 mb-4 text-sm">
-              <div className="flex flex-wrap gap-4 items-center">
-                {sessionData.topic && (
-                  <div className="flex items-center">
-                    <span className="text-muted-foreground mr-1">Topic:</span>
-                    <span className="text-white">{sessionData.topic.title}</span>
-                  </div>
-                )}
-                
-                <div className="flex items-center">
-                  <span className="text-muted-foreground mr-1">Status:</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs ${
-                    sessionData.session?.status === 'active' 
-                      ? 'bg-green-900/20 text-green-500' 
-                      : sessionData.session?.status === 'completed'
-                        ? 'bg-blue-900/20 text-blue-500'
-                        : 'bg-gray-900/20 text-gray-500'
-                  }`}>
-                    {sessionData.session?.status 
-                      ? `${sessionData.session.status.charAt(0).toUpperCase()}${sessionData.session.status.slice(1)}` 
-                      : 'Active'}
-                  </span>
-                </div>
-                
-                <div className="flex items-center">
-                  <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
-                  <span className="text-muted-foreground mr-1">Created:</span>
-                  <span className="text-white">
-                    {sessionData.session?.createdAt ? new Date(sessionData.session.createdAt).toLocaleDateString() : 'Today'}
-                  </span>
-                </div>
-                
-                <div className="flex items-center">
-                  <Clock className="h-3 w-3 text-muted-foreground mr-1" />
-                  <span className="text-muted-foreground mr-1">Last activity:</span>
-                  <span className="text-white">
-                    {sessionData.session?.lastMessageAt 
-                      ? formatDistanceToNow(new Date(sessionData.session.lastMessageAt), { addSuffix: true })
-                      : 'Just now'}
-                  </span>
-                </div>
+              <div className="flex items-center">
+                <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
+                <span className="text-muted-foreground mr-1">Created:</span>
+                <span className="text-white">
+                  {sessionData.session?.createdAt ? new Date(sessionData.session.createdAt).toLocaleDateString() : 'Today'}
+                </span>
+              </div>
+              
+              <div className="flex items-center">
+                <Clock className="h-3 w-3 text-muted-foreground mr-1" />
+                <span className="text-muted-foreground mr-1">Last activity:</span>
+                <span className="text-white">
+                  {sessionData.session?.lastMessageAt 
+                    ? formatDistanceToNow(new Date(sessionData.session.lastMessageAt), { addSuffix: true })
+                    : 'Just now'}
+                </span>
               </div>
             </div>
-            
-            <div className="bg-muted rounded-2xl border border-border p-6 flex-1 flex flex-col">
-              <div ref={messageContainerRef} className="flex-1 overflow-y-auto mb-4 bg-background border border-border/30 rounded-lg p-4 min-h-[400px]">
-                {!sessionData.messages || sessionData.messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground py-8">
-                    <UserPlus2 className="h-12 w-12 mb-4 text-muted-foreground/60" />
-                    <p className="text-lg">No messages yet</p>
-                    <p className="text-sm max-w-sm">Start a conversation to get relationship coaching from your AI therapist.</p>
+          </div>
+          
+          {/* Chat container */}
+          <div className="bg-muted rounded-lg border border-border p-4 flex-1 flex flex-col">
+            <div ref={messageContainerRef} className="flex-1 overflow-y-auto mb-4 bg-background border border-border/30 rounded-lg p-4 min-h-[400px]">
+              {!sessionData.messages || sessionData.messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground py-8">
+                  <UserPlus2 className="h-12 w-12 mb-4 text-muted-foreground/60" />
+                  <p className="text-lg">No messages yet</p>
+                  <p className="text-sm max-w-sm">Start a conversation to get relationship coaching from your AI therapist.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Welcome message */}
+                  <div className="flex justify-start mb-6">
+                    <div className="flex items-start max-w-[75%]">
+                      <div className="bg-emotion-peaceful/20 border border-emotion-peaceful/30 rounded-lg px-4 py-3 text-white">
+                        <p className="font-medium mb-1">Welcome to your coaching session</p>
+                        <p>Hi there! I'm your relationship coach. I'm here to listen and provide guidance based on your needs. Feel free to share what's on your mind about your relationship, and we can work through it together.</p>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Welcome message always shown at the start of a session */}
-                    <div className="flex justify-start mb-6">
-                      <div className="flex items-start max-w-[75%]">
-                        <div className="bg-emotion-peaceful/20 border border-emotion-peaceful/30 rounded-2xl px-4 py-3 text-white">
-                          <p className="font-medium mb-1">Welcome to your coaching session</p>
-                          <p>Hi there! I'm your relationship coach. I'm here to listen and provide guidance based on your needs. Feel free to share what's on your mind about your relationship, and we can work through it together.</p>
+
+                  {/* Conversation messages */}
+                  {sessionData.messages.map((message) => (
+                    <div key={message.id} className={`flex ${message.isUserMessage ? 'justify-end' : 'justify-start'} mb-3`}>
+                      {!message.isUserMessage && (
+                        <div className="h-8 w-8 rounded-full bg-emotion-peaceful/30 flex items-center justify-center mr-2 mt-1">
+                          <Heart className="h-4 w-4 text-emotion-peaceful" />
+                        </div>
+                      )}
+                      <div className={`max-w-[75%] rounded-lg px-4 py-3 ${
+                        message.isUserMessage 
+                          ? 'bg-emotion-passionate text-white rounded-tr-none' 
+                          : 'bg-gray-700 text-white rounded-tl-none'
+                      }`}>
+                        {message.content}
+                        <div className={`text-xs mt-1 ${message.isUserMessage ? 'text-white/70 text-right' : 'text-white/70'}`}>
+                          {message.createdAt 
+                            ? format(new Date(message.createdAt), 'h:mm a')
+                            : format(new Date(), 'h:mm a')}
+                        </div>
+                      </div>
+                      {message.isUserMessage && (
+                        <div className="h-8 w-8 rounded-full bg-emotion-passionate/30 flex items-center justify-center ml-2 mt-1">
+                          <User className="h-4 w-4 text-emotion-passionate" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {/* Typing indicator */}
+                  {sendMessageMutation.isPending && (
+                    <div className="flex justify-start">
+                      <div className="h-8 w-8 rounded-full bg-emotion-peaceful/30 flex items-center justify-center mr-2">
+                        <Heart className="h-4 w-4 text-emotion-peaceful" />
+                      </div>
+                      <div className="bg-gray-700 text-white rounded-lg px-4 py-2 rounded-tl-none">
+                        <div className="flex space-x-1">
+                          <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                          <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                          <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "600ms" }}></div>
                         </div>
                       </div>
                     </div>
-
-                    {/* Actual conversation messages */}
-                    {sessionData.messages.map((message) => (
-                      <div key={message.id} className={`flex ${message.isUserMessage ? 'justify-end' : 'justify-start'} mb-3`}>
-                        {!message.isUserMessage && (
-                          <div className="h-8 w-8 rounded-full bg-emotion-peaceful/30 flex items-center justify-center mr-2 mt-1">
-                            <Heart className="h-4 w-4 text-emotion-peaceful" />
-                          </div>
-                        )}
-                        <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                          message.isUserMessage 
-                            ? 'bg-emotion-passionate text-white rounded-tr-none' 
-                            : 'bg-gray-700 text-white rounded-tl-none'
-                        }`}>
-                          {message.content}
-                          <div className={`text-xs mt-1 ${message.isUserMessage ? 'text-white/70 text-right' : 'text-white/70'}`}>
-                            {message.createdAt 
-                              ? format(new Date(message.createdAt), 'h:mm a')
-                              : format(new Date(), 'h:mm a')}
-                          </div>
-                        </div>
-                        {message.isUserMessage && (
-                          <div className="h-8 w-8 rounded-full bg-emotion-passionate/30 flex items-center justify-center ml-2 mt-1">
-                            <User className="h-4 w-4 text-emotion-passionate" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
-                    {/* Typing indicator when message is being sent */}
-                    {sendMessageMutation.isPending && (
-                      <div className="flex justify-start">
-                        <div className="h-8 w-8 rounded-full bg-emotion-peaceful/30 flex items-center justify-center mr-2">
-                          <Heart className="h-4 w-4 text-emotion-peaceful" />
-                        </div>
-                        <div className="bg-gray-700 text-white rounded-2xl px-4 py-2 rounded-tl-none">
-                          <div className="flex space-x-1">
-                            <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                            <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "300ms" }}></div>
-                            <div className="h-2 w-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: "600ms" }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-auto">
-                <form className="flex items-center space-x-2" onSubmit={handleSendMessage}>
-                  <input
-                    type="text"
-                    placeholder="Type a message to the AI therapist..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    className="flex-1 rounded-lg bg-background px-4 py-2 text-white border border-border focus:outline-none focus:ring-2 focus:ring-emotion-peaceful"
-                  />
-                  <Button 
-                    type="submit" 
-                    variant="default" 
-                    size="icon" 
-                    className="bg-emotion-peaceful hover:bg-emotion-peaceful/90"
-                    disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                  >
-                    {sendMessageMutation.isPending ? (
-                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-current" />
-                    ) : (
-                      <MessageCircle className="h-5 w-5" />
-                    )}
-                  </Button>
-                </form>
-              </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Message input */}
+            <div>
+              <form className="flex items-center space-x-2" onSubmit={handleSendMessage}>
+                <input
+                  type="text"
+                  placeholder="Type a message to the AI therapist..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  className="flex-1 rounded-lg bg-background px-4 py-2 text-white border border-border focus:outline-none focus:ring-2 focus:ring-emotion-peaceful"
+                />
+                <Button 
+                  type="submit" 
+                  variant="default" 
+                  size="icon" 
+                  className="bg-emotion-peaceful hover:bg-emotion-peaceful/90"
+                  disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                >
+                  {sendMessageMutation.isPending ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-current" />
+                  ) : (
+                    <MessageCircle className="h-5 w-5" />
+                  )}
+                </Button>
+              </form>
             </div>
           </div>
         </div>
@@ -467,14 +368,14 @@ export default function CoachingSessions() {
               onClick={() => setLocation('/')}
               className="mr-4 text-muted-foreground hover:text-white"
             >
-                <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
             </button>
             <h2 className="text-xl font-semibold text-white">Coaching Sessions</h2>
           </div>
           
           <Button 
             className="bg-emotion-peaceful hover:bg-emotion-peaceful/90"
-            onClick={() => handleCreateSession()}
+            onClick={() => setNewSessionOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" /> New Session
           </Button>
@@ -495,7 +396,7 @@ export default function CoachingSessions() {
                 <p className="text-muted-foreground mb-4">You don't have any coaching sessions yet.</p>
                 <Button 
                   className="bg-emotion-peaceful hover:bg-emotion-peaceful/90"
-                  onClick={() => handleCreateSession()}
+                  onClick={() => setNewSessionOpen(true)}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Start Your First Session
                 </Button>
@@ -529,15 +430,11 @@ export default function CoachingSessions() {
                       variant="outline" 
                       className="w-full text-white border-border hover:bg-background"
                       onClick={() => {
-                        console.log("Continue session clicked, navigating to:", `/coaching-sessions/${session.id}`);
-                        
-                        // Directly navigate without waiting for prefetch
-                        // This ensures we don't get stuck on this screen
                         setLocation(`/coaching-sessions/${session.id}`);
                         
                         // Also invalidate the query to ensure fresh data
                         queryClient.invalidateQueries({ 
-                          queryKey: ["/api/coaching/sessions", session.id] 
+                          queryKey: ["/api/coaching/sessions", String(session.id)] 
                         });
                       }}
                     >
@@ -551,116 +448,61 @@ export default function CoachingSessions() {
         )}
       </div>
       
-      {/* Sessions Dialog for Mobile & New Session Creation */}
+      {/* New Session Dialog */}
       <Dialog open={newSessionOpen} onOpenChange={setNewSessionOpen}>
         <DialogContent className="bg-muted border-border text-white">
           <DialogHeader>
-            <DialogTitle>Coaching Sessions</DialogTitle>
+            <DialogTitle>New Coaching Session</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {sessionId ? "Switch to another session or start a new one" : "Begin your conversation with a relationship coach"}
+              Begin your conversation with a relationship coach
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue={sessionId ? "existing" : "new"}>
-            <TabsList className="grid w-full grid-cols-2 bg-background border border-border">
-              <TabsTrigger value="existing">Your Sessions</TabsTrigger>
-              <TabsTrigger value="new">New Session</TabsTrigger>
-            </TabsList>
+          <form onSubmit={handleCreateSession}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label htmlFor="title" className="text-sm font-medium">
+                  Session Title
+                </label>
+                <input 
+                  id="title"
+                  type="text"
+                  value={sessionTitle}
+                  onChange={(e) => setSessionTitle(e.target.value)}
+                  placeholder="e.g., Communication issues, Trust building, etc."
+                  className="w-full rounded-md bg-background border border-border p-2 text-white"
+                />
+              </div>
+            </div>
             
-            {/* Existing Sessions Tab */}
-            <TabsContent value="existing" className="mt-4">
-              {sessions && sessions.length > 0 ? (
-                <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-                  {sessions.map((session) => (
-                    <div 
-                      key={session.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        sessionId && String(session.id) === sessionId 
-                          ? 'bg-background border-emotion-peaceful' 
-                          : 'bg-background/50 border-border hover:border-border/80'
-                      }`}
-                      onClick={() => {
-                        setNewSessionOpen(false);
-                        setLocation(`/coaching-sessions/${session.id}`);
-                      }}
-                    >
-                      <div className="font-medium text-white text-sm mb-1 truncate">{session.title}</div>
-                      <div className="flex items-center justify-between">
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${
-                          session.status === 'active' 
-                            ? 'bg-green-900/20 text-green-500' 
-                            : session.status === 'completed'
-                              ? 'bg-blue-900/20 text-blue-500'
-                              : 'bg-gray-900/20 text-gray-500'
-                        }`}>
-                          {session.status ? session.status.charAt(0).toUpperCase() + session.status.slice(1) : 'Active'}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {session.lastMessageAt 
-                            ? formatDistanceToNow(new Date(session.lastMessageAt), { addSuffix: true })
-                            : 'Just now'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No sessions yet. Create your first one!</p>
-                </div>
-              )}
-            </TabsContent>
-            
-            {/* New Session Tab */}
-            <TabsContent value="new" className="mt-4">
-              <form onSubmit={handleCreateSession}>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <label htmlFor="title" className="text-sm font-medium">
-                      Session Title
-                    </label>
-                    <input 
-                      id="title"
-                      type="text"
-                      value={sessionTitle}
-                      onChange={(e) => setSessionTitle(e.target.value)}
-                      placeholder="e.g., Communication issues, Trust building, etc."
-                      className="w-full rounded-md bg-background border border-border p-2 text-white"
-                    />
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="border-border text-white"
+                onClick={() => setNewSessionOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                className="bg-emotion-peaceful hover:bg-emotion-peaceful/90"
+                disabled={createSessionMutation.isPending}
+              >
+                {createSessionMutation.isPending ? (
+                  <div className="flex items-center justify-center">
+                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent border-current" />
+                    Creating...
                   </div>
-                </div>
-                
-                <Button 
-                  type="submit"
-                  className="w-full bg-emotion-peaceful hover:bg-emotion-peaceful/90 mt-2"
-                  disabled={createSessionMutation.isPending}
-                >
-                  {createSessionMutation.isPending ? (
-                    <div className="flex items-center justify-center">
-                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent border-current" />
-                      Creating...
-                    </div>
-                  ) : (
-                    <>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Start New Session
-                    </>
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-          
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="border-border text-white"
-              onClick={() => setNewSessionOpen(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Start Session
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
