@@ -685,13 +685,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const { title, category } = req.body;
+      const { title, category, generateTitleFromContent } = req.body;
       const updateData: Partial<any> = {};
-      if (title !== undefined) updateData.title = title;
+      
+      if (generateTitleFromContent === true) {
+        try {
+          // Get session messages to analyze
+          const messages = await storage.getSessionMessages(sessionId);
+          
+          if (messages.length > 0) {
+            // Use OpenAI to generate a title based on conversation content
+            const openai = new OpenAI({
+              apiKey: process.env.OPENAI_API_KEY
+            });
+            
+            // Build a prompt with the conversation content
+            const conversationText = messages
+              .map(m => `${m.role === 'user' ? 'User' : 'Coach'}: ${m.content}`)
+              .join('\n');
+            
+            const response = await openai.chat.completions.create({
+              model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a helpful assistant that generates short, descriptive titles for relationship coaching conversations. Create a concise title (5-7 words max) that captures the main topic or issue being discussed. Do not use quotes or punctuation in the title. The title should be meaningful and descriptive of the conversation content. Respond ONLY with the title text and nothing else."
+                },
+                {
+                  role: "user",
+                  content: `Please generate a title for this relationship coaching conversation:\n\n${conversationText}`
+                }
+              ],
+              temperature: 0.7,
+              max_tokens: 50
+            });
+            
+            const generatedTitle = response.choices[0].message.content?.trim();
+            if (generatedTitle) {
+              updateData.title = generatedTitle;
+              console.log("Auto-generated title:", generatedTitle);
+            }
+          }
+        } catch (titleError) {
+          console.error("Error generating title with OpenAI:", titleError);
+          // Continue with user-provided title or existing title if AI title generation fails
+        }
+      } else {
+        // Use provided title if auto-generation wasn't requested
+        if (title !== undefined) updateData.title = title;
+      }
+      
+      // Always update category if provided
       if (category !== undefined) updateData.category = category;
 
-      const updatedSession = await storage.updateCoachingSession(sessionId, updateData);
-      return res.json(updatedSession);
+      // Only update if we have changes to make
+      if (Object.keys(updateData).length > 0) {
+        const updatedSession = await storage.updateCoachingSession(sessionId, updateData);
+        return res.json(updatedSession);
+      } else {
+        return res.json(session); // Return original session if no updates
+      }
     } catch (error) {
       console.error("Error updating coaching session:", error);
       return res.status(500).json({ message: "Failed to update coaching session" });

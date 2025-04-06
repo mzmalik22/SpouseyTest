@@ -271,10 +271,20 @@ export default function Coaching() {
       });
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (newMessage) => {
       queryClient.invalidateQueries({ queryKey: ['/api/coaching/sessions', activeSessionId, 'messages'] });
       // Also update the sessions list as the timestamp will have changed
       queryClient.invalidateQueries({ queryKey: ['/api/coaching/sessions'] });
+      
+      // Auto-generate title if this is the third message exchange (1 user + 1 ai + 1 user)
+      if (messages.length === 2 && activeSession && 
+          (activeSession.title.includes('Session') || activeSession.title.includes('Coaching'))) {
+        // It's likely still using the default title, so let's generate a better one
+        updateSessionMutation.mutate({
+          id: activeSessionId!,
+          data: { generateTitleFromContent: true }
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -337,17 +347,30 @@ export default function Coaching() {
   
   // Handle creating a new session
   const handleCreateSession = () => {
-    if (!newSessionTitle.trim()) {
-      toast({
-        title: "Session title required",
-        description: "Please enter a title for your coaching session.",
-        variant: "destructive"
+    // Generate a default title based on the category
+    const getDefaultTitle = (category: SessionCategory) => {
+      const date = new Date().toLocaleDateString('en-US', {
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
       });
-      return;
-    }
+      
+      const titles = {
+        'relationship': `Relationship Session - ${date}`,
+        'communication': `Communication Session - ${date}`,
+        'conflict': `Conflict Resolution - ${date}`,
+        'intimacy': `Intimacy Session - ${date}`,
+        'future': `Future Planning - ${date}`,
+        'general': `Coaching Session - ${date}`
+      };
+      
+      return titles[category] || titles.general;
+    };
+    
+    const title = newSessionTitle.trim() || getDefaultTitle(newSessionCategory);
     
     createSessionMutation.mutate({
-      title: newSessionTitle.trim(),
+      title,
       category: newSessionCategory
     });
   };
@@ -542,7 +565,7 @@ export default function Coaching() {
                     </div>
                   )}
                   
-                  {messages.map((message) => (
+                  {messages.map((message: SessionMessage) => (
                     <div 
                       key={message.id} 
                       className={`flex gap-3 ${
@@ -646,14 +669,17 @@ export default function Coaching() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Session Title</Label>
+              <Label htmlFor="title">Session Title (Optional)</Label>
               <Input
                 id="title"
                 value={newSessionTitle}
                 onChange={(e) => setNewSessionTitle(e.target.value)}
-                placeholder="e.g., Communication Issues, Trust Building"
+                placeholder="Leave blank for auto-generated title"
                 className="bg-gray-900 border-gray-700"
               />
+              <p className="text-xs text-muted-foreground">
+                If left blank, a title will be automatically generated based on the category.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
