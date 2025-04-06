@@ -111,7 +111,6 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/messages" component={Messages} />
         <Route path="/coaching" component={Coaching} />
-        <Route path="/coaching/:id" component={Coaching} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
