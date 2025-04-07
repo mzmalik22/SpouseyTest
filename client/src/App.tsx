@@ -17,6 +17,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useIsMobile } from "./hooks/use-mobile";
 import { isNativePlatform } from "./lib/capacitor";
+import { TopNavigation } from "@/components/top-navigation";
 
 // Layout component to handle different layouts for mobile vs desktop
 function AppLayout({ children, isAuthPage = false }: { children: React.ReactNode, isAuthPage?: boolean }) {
@@ -36,6 +37,9 @@ function AppLayout({ children, isAuthPage = false }: { children: React.ReactNode
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
+      {/* Desktop top navigation - only for authenticated non-auth pages */}
+      {!isMobile && !isNativePlatform() && <TopNavigation />}
+      
       <main className="flex-1 container mx-auto px-4 md:px-6 pb-16 pt-4">
         {children}
       </main>
