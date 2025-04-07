@@ -623,6 +623,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to update nicknames" });
     }
   });
+  
+  // Therapist status update route
+  app.post("/api/user/therapist-status", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    const { seesTherapist } = req.body;
+    
+    console.log("Therapist status update request:", {
+      userId: currentUser.id,
+      seesTherapist
+    });
+    
+    if (seesTherapist === undefined) {
+      return res.status(400).json({ message: "Therapist status must be provided" });
+    }
+    
+    try {
+      // Update the user's therapist status
+      const updatedUser = await storage.updateUser(currentUser.id, {
+        seesTherapist: !!seesTherapist // Ensure boolean
+      });
+      
+      if (!updatedUser) {
+        console.log("User not found for therapist status update:", currentUser.id);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      console.log("User therapist status updated successfully:", {
+        id: updatedUser.id,
+        seesTherapist: updatedUser.seesTherapist
+      });
+      
+      // Create activity for updating therapist status
+      await storage.createActivity({
+        userId: currentUser.id,
+        type: "profile_update",
+        description: `Updated therapist status: ${seesTherapist ? 'Now seeing a therapist' : 'No longer seeing a therapist'}`
+      });
+      
+      // Return updated user without password
+      const { password, ...userWithoutPassword } = updatedUser;
+      return res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Therapist status update error:", error);
+      return res.status(500).json({ message: "Failed to update therapist status" });
+    }
+  });
 
   // Coaching Sessions API
   

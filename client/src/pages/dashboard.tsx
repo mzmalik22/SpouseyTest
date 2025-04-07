@@ -3,17 +3,22 @@ import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useAuth } from "@/context/auth-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import QuickAccessTile from "@/components/quick-access-tile";
 import ActivityItem from "@/components/activity-item";
 import PartnerInviteModal from "@/components/partner-invite-modal";
 import NicknameForm from "@/components/nickname-form";
-import { MessageSquare, BookOpen, Heart, Edit } from "lucide-react";
+import { MessageSquare, BookOpen, Heart, Edit, User } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity } from "@/lib/types";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const { toast } = useToast();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isEditingNicknames, setIsEditingNicknames] = useState(false);
 
@@ -30,6 +35,37 @@ export default function Dashboard() {
     
   console.log("Dashboard: Current user data:", user);
   console.log("Dashboard: Parsed partner nicknames:", partnerNicknames);
+
+  // Mutation to update therapist status
+  const therapistStatusMutation = useMutation({
+    mutationFn: async (seesTherapist: boolean) => {
+      const response = await apiRequest("POST", "/api/user/therapist-status", { seesTherapist });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update therapist status");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Settings updated",
+        description: "Your therapist status has been updated successfully.",
+      });
+      refreshUser(); // Refresh user data to get the updated seesTherapist value
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to update",
+        description: error instanceof Error ? error.message : "An error occurred",
+      });
+    },
+  });
+
+  // Function to handle therapist toggle change
+  const handleTherapistToggle = (checked: boolean) => {
+    therapistStatusMutation.mutate(checked);
+  };
 
   // Function to handle completing nickname edit
   const handleNicknameFormSaved = () => {
@@ -142,6 +178,42 @@ export default function Dashboard() {
               linkBgColor="bg-emotion-peaceful"
               linkTextColor="text-black"
             />
+          </div>
+          
+          {/* Therapist Toggle */}
+          <div className="bg-muted rounded-2xl border border-border p-6 mb-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between">
+              <div className="mb-4 sm:mb-0">
+                <h2 className="text-xl font-semibold text-white">Professional Support</h2>
+                <p className="text-muted-foreground mt-1">
+                  Let us know if you're currently seeing a therapist
+                </p>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="therapist-mode" 
+                  checked={user?.seesTherapist || false}
+                  onCheckedChange={handleTherapistToggle}
+                  disabled={therapistStatusMutation.isPending}
+                />
+                <Label htmlFor="therapist-mode" className="text-white">
+                  {user?.seesTherapist ? "I see a therapist" : "I don't see a therapist"}
+                </Label>
+                {therapistStatusMutation.isPending && (
+                  <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-emotion-happy ml-2"></div>
+                )}
+              </div>
+            </div>
+            
+            {user?.seesTherapist && (
+              <div className="mt-4 p-4 bg-black/30 rounded-lg border border-emotion-happy/20">
+                <p className="text-sm text-emotion-happy">
+                  <User className="h-4 w-4 inline-block mr-1" />
+                  The therapist module is coming soon! You'll be able to track progress, share insights, and coordinate between Spousey and your therapist.
+                </p>
+              </div>
+            )}
           </div>
           
           {/* Recent Activity */}

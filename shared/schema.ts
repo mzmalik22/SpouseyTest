@@ -21,7 +21,8 @@ export const users = pgTable("users", {
   relationshipCondition: text("relationship_condition"), // Will be one of relationshipConditionValues
   onboardingCompleted: boolean("onboarding_completed").default(false),
   nickname: text("nickname"),  // User's own nickname
-  partnerNickname: text("partner_nickname")  // What they call their partner
+  partnerNickname: text("partner_nickname"),  // What they call their partner
+  seesTherapist: boolean("sees_therapist").default(false)  // Whether user sees a therapist
 });
 
 export const messages = pgTable("messages", {
