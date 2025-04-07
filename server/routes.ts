@@ -998,6 +998,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // TEMPORARY ENDPOINT: List all users (for debugging)
+  app.get("/api/debug/users", async (req, res) => {
+    try {
+      const allUsers = Array.from(storage.getUsers().values());
+      // Filter out sensitive information
+      const safeUsers = allUsers.map(user => {
+        const { password, ...safeUser } = user;
+        return safeUser;
+      });
+      return res.json(safeUsers);
+    } catch (error) {
+      console.error("Error retrieving users:", error);
+      return res.status(500).json({ message: "Failed to retrieve users" });
+    }
+  });
+  
+  // TEMPORARY ENDPOINT: Create test user
+  app.post("/api/debug/create-test-user", async (req, res) => {
+    try {
+      // Create a test user
+      const testUser = await storage.createUser({
+        username: "test_user",
+        password: "spouseytest",
+        email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+      });
+      
+      // Filter out password
+      const { password, ...safeUser } = testUser;
+      
+      return res.status(201).json(safeUser);
+    } catch (error) {
+      console.error("Error creating test user:", error);
+      return res.status(500).json({ message: "Failed to create test user" });
+    }
+  });
+  
   const httpServer = createServer(app);
   return httpServer;
 }

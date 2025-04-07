@@ -26,6 +26,7 @@ import connectPg from "connect-pg-simple";
 
 export interface IStorage {
   // User methods
+  getUsers(): Map<number, User>; // Debug method
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -123,6 +124,11 @@ export class MemStorage implements IStorage {
   private sessionIdCounter: number;
   private sessionMessageIdCounter: number;
   sessionStore: session.Store;
+  
+  // Debug method to expose users map for debugging
+  getUsers(): Map<number, User> {
+    return this.users;
+  }
 
   constructor() {
     // Use the global data to persist across server restarts
@@ -699,6 +705,11 @@ const PostgresSessionStore = connectPg(session);
 
 export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
+  
+  // Debug method
+  getUsers(): Map<number, User> {
+    throw new Error("Method not implemented in DatabaseStorage");
+  }
   
   constructor() {
     this.sessionStore = new PostgresSessionStore({
