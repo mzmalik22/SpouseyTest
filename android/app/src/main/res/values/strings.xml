@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Spousey</string>
-    <string name="title_activity_main">Spousey</string>
+    <string name="app_name">Spouseyv1</string>
+    <string name="title_activity_main">Spouseyv1</string>
     <string name="package_name">com.spousey.app</string>
     <string name="custom_url_scheme">com.spousey.app</string>
 </resources>
