@@ -63,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return done(null, false, { message: "Incorrect password." });
           }
           
-          console.log("Login successful for user:", user.username);
+          console.log("Login successful for user:", user.email);
           return done(null, user);
         } catch (err) {
           console.error("Error during authentication:", err);
@@ -97,13 +97,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (emailExists) {
         console.log("Email already exists:", userData.email);
         return res.status(400).json({ message: "Email already exists" });
-      }
-      
-      // Check if username already exists
-      const usernameExists = await storage.getUserByUsername(userData.username);
-      if (usernameExists) {
-        console.log("Username already exists:", userData.username);
-        return res.status(400).json({ message: "Username already exists" });
       }
       
       // In a real app, we would hash the password
@@ -207,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Return basic info about the invitation
     return res.json({ 
       valid: true,
-      partnerName: partnerUser.firstName || partnerUser.username 
+      partnerName: partnerUser.firstName || partnerUser.email 
     });
   });
 

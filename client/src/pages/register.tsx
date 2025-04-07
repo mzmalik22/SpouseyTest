@@ -13,7 +13,6 @@ import spouseyLogo from "@/assets/spousey-logo-transparent.png";
 import { birthSexValues } from "@shared/schema";
 
 const registerSchema = z.object({
-  username: z.string().min(3, { message: "Username must be at least 3 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
   firstName: z.string().optional(),
@@ -44,7 +43,6 @@ export default function Register() {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      username: "",
       email: "",
       password: "",
       firstName: "",
@@ -122,25 +120,6 @@ export default function Register() {
 
               <FormField
                 control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white">Username</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="johnsmith"
-                        className="w-full p-4 bg-muted border border-border text-white rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-emotion-angry" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -183,19 +162,19 @@ export default function Register() {
                 control={form.control}
                 name="birthSex"
                 render={({ field }) => (
-                  <FormItem className="space-y-3">
+                  <FormItem className="space-y-2">
                     <FormLabel className="text-white">Birth Sex</FormLabel>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
                         defaultValue={field.value}
-                        className="flex flex-col space-y-1"
+                        className="flex flex-row space-x-2"
                         disabled={isLoading}
                       >
                         {birthSexValues.map((sex) => (
-                          <div key={sex} className="flex items-center space-x-2 p-2 border border-border rounded-md hover:bg-muted/50 transition-colors">
+                          <div key={sex} className="flex-1 flex items-center justify-center space-x-1 p-1 border border-border rounded-md hover:bg-muted/50 transition-colors">
                             <RadioGroupItem value={sex} id={sex} />
-                            <Label htmlFor={sex} className="cursor-pointer capitalize text-white">
+                            <Label htmlFor={sex} className="cursor-pointer capitalize text-white text-sm">
                               {sex}
                             </Label>
                           </div>

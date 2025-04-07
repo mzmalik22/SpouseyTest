@@ -14,7 +14,7 @@ export const birthSexValues = ['male', 'female', 'other'] as const;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  username: text("username").unique(),  // Made optional since we'll use email as the main identifier
   password: text("password").notNull(),
   email: text("email").notNull().unique(),
   firstName: text("first_name"),

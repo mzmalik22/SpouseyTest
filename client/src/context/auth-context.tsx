@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData);
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${userData.firstName || userData.username || userData.email}!`,
+        description: `Welcome back, ${userData.firstName || userData.email}!`,
       });
       
       // Handle invite code if present
@@ -98,8 +98,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       
+      // Use email as username since we're not collecting username separately
+      const userDataWithUsername = {
+        ...userData,
+        username: userData.email
+      };
+      
       // Include invite code in the registration data if provided
-      const registerData = inviteCode ? { ...userData, inviteCode } : userData;
+      const registerData = inviteCode ? { ...userDataWithUsername, inviteCode } : userDataWithUsername;
       
       const response = await apiRequest("POST", "/api/auth/register", registerData);
       
