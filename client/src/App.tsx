@@ -76,7 +76,7 @@ function AppLayout({ children, isAuthPage = false }: { children: React.ReactNode
 function Router() {
   const { user, loading } = useAuth();
   const [location, setLocation] = useLocation();
-
+  
   useEffect(() => {
     // Skip all redirects if loading
     if (loading) return;
@@ -98,18 +98,56 @@ function Router() {
       return;
     }
     
-    // Redirect to onboarding if authenticated but onboarding not completed
-    if (user && !user.onboardingCompleted && location !== "/onboarding") {
-      setLocation("/onboarding");
-      return;
-    }
-    
-    // Redirect to dashboard if onboarding is completed but trying to access onboarding
-    if (user && user.onboardingCompleted && location === "/onboarding") {
-      setLocation("/");
-      return;
+    // Check if authenticated user needs to do onboarding
+    if (user) {
+      // Handle initial onboarding
+      if (!user.onboardingCompleted && location !== "/onboarding") {
+        setLocation("/onboarding");
+        return;
+      }
+      
+      // Check if we need to prompt for relationship status again, but only once per session
+      // Only ask again if user is on dashboard and it's been more than 5 days
+      if (user.onboardingCompleted && location === "/" && !isOnOnboardingCooldown() && 
+          !sessionStorage.getItem('checkedRelationshipStatusThisSession')) {
+        // Mark that we've checked this session to avoid loops
+        sessionStorage.setItem('checkedRelationshipStatusThisSession', 'true');
+        // Reset last prompt time and redirect to onboarding
+        localStorage.removeItem('lastRelationshipPrompt');
+        setLocation("/onboarding");
+        return;
+      }
+      
+      // Redirect to dashboard if onboarding is completed but trying to access onboarding
+      // and not being forced to update relationship status
+      if (user.onboardingCompleted && location === "/onboarding" && isOnOnboardingCooldown()) {
+        setLocation("/");
+        return;
+      }
     }
   }, [user, loading, location, setLocation]);
+  
+  // Helper function to determine if we should ask about relationship
+  // Returns true if we've asked within the last 5 days
+  function isOnOnboardingCooldown(): boolean {
+    const lastPromptStr = localStorage.getItem('lastRelationshipPrompt');
+    if (!lastPromptStr) return false;
+    
+    try {
+      const lastPromptDate = new Date(lastPromptStr);
+      const now = new Date();
+      
+      // Calculate days between lastPrompt and now
+      const differenceInMs = now.getTime() - lastPromptDate.getTime();
+      const differenceInDays = differenceInMs / (1000 * 60 * 60 * 24);
+      
+      // If it's been less than 5 days, we're on cooldown
+      return differenceInDays < 5;
+    } catch (error) {
+      console.error("Error parsing last prompt date:", error);
+      return false; // If there's an error, default to showing the prompt
+    }
+  }
 
   if (loading) {
     return (
