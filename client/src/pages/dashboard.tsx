@@ -8,6 +8,7 @@ import QuickAccessTile from "@/components/quick-access-tile";
 import ActivityItem from "@/components/activity-item";
 import PartnerInviteModal from "@/components/partner-invite-modal";
 import NicknameForm from "@/components/nickname-form";
+import { RelationshipRadar } from "@/components/relationship-radar";
 import { MessageSquare, BookOpen, Heart, Edit, User } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity } from "@/lib/types";
@@ -153,6 +154,11 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             )}
+          </div>
+          
+          {/* Relationship Radar */}
+          <div className="mb-6">
+            <RelationshipRadar />
           </div>
           
           {/* Quick Access Tiles */}

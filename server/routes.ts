@@ -7,6 +7,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcrypt";
 import { refineMessage, refineMessageAllVibes } from "./openai";
+import { generateRelationshipRadarInsights } from "./relationship-radar";
 import OpenAI from "openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1650,6 +1651,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating task:", error);
       return res.status(500).json({ message: "Failed to update task" });
+    }
+  });
+  
+  // Relationship Radar endpoint
+  app.get("/api/relationship-radar", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    
+    try {
+      // If user hasn't completed onboarding, return a default message
+      if (!currentUser.onboardingCompleted) {
+        return res.json([{
+          type: "relationship_health",
+          title: "Complete Your Profile",
+          description: "Complete your profile to start receiving personalized relationship insights.",
+          severity: "low",
+          actionItem: "Finish the onboarding process to tell us about your relationship.",
+          createdAt: new Date()
+        }]);
+      }
+      
+      // Get messages
+      const messages = currentUser.partnerId 
+        ? await storage.getMessages(currentUser.id, currentUser.partnerId)
+        : [];
+      
+      // Get calendar events (next 14 days)
+      const now = new Date();
+      const twoWeeksFromNow = new Date();
+      twoWeeksFromNow.setDate(now.getDate() + 14);
+      
+      const calendarEvents = await storage.getUserCalendarEvents(
+        currentUser.id, 
+        now,
+        twoWeeksFromNow
+      );
+      
+      // Generate insights
+      const insights = await generateRelationshipRadarInsights(
+        currentUser,
+        messages,
+        calendarEvents
+      );
+      
+      return res.json(insights);
+    } catch (error) {
+      console.error("Error generating relationship radar insights:", error);
+      return res.status(500).json({ 
+        message: "Failed to generate relationship insights",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   });
   

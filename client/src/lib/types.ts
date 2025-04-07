@@ -111,6 +111,22 @@ export type VibeOption = {
   description: string;
 };
 
+export enum RadarInsightType {
+  MESSAGE_TONE = "message_tone",
+  CALENDAR_STRESS = "calendar_stress",
+  RELATIONSHIP_HEALTH = "relationship_health",
+  COMMUNICATION_TIP = "communication_tip"
+}
+
+export interface RadarInsight {
+  type: RadarInsightType | string;
+  title: string;
+  description: string;
+  severity: "low" | "medium" | "high";
+  actionItem?: string;
+  createdAt: Date | string;
+}
+
 export const vibeOptions: VibeOption[] = [
   {
     id: 'affectionate',
