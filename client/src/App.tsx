@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import Messages from "@/pages/messages";
 import Coaching from "@/pages/coaching";
 import Onboarding from "@/pages/onboarding";
+import Invite from "@/pages/invite";
 import { useAuth, AuthProvider } from "./context/auth-context";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
@@ -67,6 +68,11 @@ function Router() {
     // Skip all redirects if loading
     if (loading) return;
     
+    // Don't redirect if on an invite page
+    if (location.startsWith("/invite/")) {
+      return;
+    }
+    
     // Redirect to login if not authenticated
     if (!user && location !== "/login" && location !== "/register") {
       setLocation("/login");
@@ -100,8 +106,8 @@ function Router() {
     );
   }
 
-  // Determine if current page is an auth page
-  const isAuthPage = location === "/login" || location === "/register" || location === "/onboarding";
+  // Determine if current page is an auth page or invite page
+  const isAuthPage = location === "/login" || location === "/register" || location === "/onboarding" || location.startsWith("/invite/");
 
   return (
     <AppLayout isAuthPage={isAuthPage}>
@@ -109,6 +115,7 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/onboarding" component={Onboarding} />
+        <Route path="/invite/:code" component={Invite} />
         <Route path="/" component={Dashboard} />
         <Route path="/messages" component={Messages} />
         <Route path="/coaching" component={Coaching} />

@@ -177,6 +177,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     return res.json({ inviteCode: updatedUser.inviteCode });
   });
+  
+  app.get("/api/users/check-invite/:code", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const { code } = req.params;
+    if (!code) {
+      return res.status(400).json({ message: "Invite code is required" });
+    }
+    
+    const partnerUser = await storage.getUserByInviteCode(code);
+    if (!partnerUser) {
+      return res.status(404).json({ message: "Invalid invite code" });
+    }
+    
+    const currentUser = req.user as any;
+    if (partnerUser.id === currentUser.id) {
+      return res.status(400).json({ message: "You cannot connect with yourself" });
+    }
+    
+    // Return basic info about the invitation
+    return res.json({ 
+      valid: true,
+      partnerName: partnerUser.firstName || partnerUser.username 
+    });
+  });
 
   app.post("/api/users/accept-invite", async (req, res) => {
     if (!req.isAuthenticated()) {
