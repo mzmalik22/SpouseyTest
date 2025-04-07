@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import Messages from "@/pages/messages";
 import Coaching from "@/pages/coaching";
 import TherapistPage from "@/pages/therapist-page";
+import CalendarPage from "@/pages/calendar-page";
 import Onboarding from "@/pages/onboarding";
 import Invite from "@/pages/invite";
 import { useAuth, AuthProvider } from "./context/auth-context";
@@ -50,6 +51,10 @@ function AppLayout({ children, isAuthPage = false }: { children: React.ReactNode
             <Link href="/messages" className="flex flex-col items-center p-2">
               <span className="h-6 w-6 text-white">💬</span>
               <span className="text-xs text-muted-foreground">Messages</span>
+            </Link>
+            <Link href="/calendar" className="flex flex-col items-center p-2">
+              <span className="h-6 w-6 text-white">📅</span>
+              <span className="text-xs text-muted-foreground">Calendar</span>
             </Link>
             <Link href="/coaching" className="flex flex-col items-center p-2">
               <span className="h-6 w-6 text-white">🧠</span>
@@ -126,6 +131,7 @@ function Router() {
         <Route path="/invite/:code" component={Invite} />
         <Route path="/" component={Dashboard} />
         <Route path="/messages" component={Messages} />
+        <Route path="/calendar" component={CalendarPage} />
         <Route path="/coaching" component={Coaching} />
         <Route path="/therapist" component={TherapistPage} />
         <Route component={NotFound} />

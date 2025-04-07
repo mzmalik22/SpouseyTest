@@ -70,6 +70,28 @@ export interface IStorage {
   dismissNotification(id: number): Promise<void>;
   getUnreadNotificationCount(userId: number): Promise<number>;
   
+  // Calendar Integration methods
+  getUserCalendarIntegrations(userId: number): Promise<CalendarIntegration[]>;
+  getCalendarIntegration(id: number): Promise<CalendarIntegration | undefined>;
+  createCalendarIntegration(integration: InsertCalendarIntegration): Promise<CalendarIntegration>;
+  updateCalendarIntegration(id: number, data: Partial<CalendarIntegration>): Promise<CalendarIntegration | undefined>;
+  deleteCalendarIntegration(id: number): Promise<boolean>;
+  
+  // Calendar Event methods
+  getUserCalendarEvents(userId: number, startDate?: Date, endDate?: Date): Promise<CalendarEvent[]>;
+  getPartnerCalendarEvents(userId: number, partnerId: number, startDate?: Date, endDate?: Date): Promise<CalendarEvent[]>;
+  getCalendarEvent(id: number): Promise<CalendarEvent | undefined>;
+  createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent>;
+  updateCalendarEvent(id: number, data: Partial<CalendarEvent>): Promise<CalendarEvent | undefined>;
+  deleteCalendarEvent(id: number): Promise<boolean>;
+  
+  // Task methods
+  getUserTasks(userId: number, status?: TaskStatus): Promise<Task[]>;
+  getTask(id: number): Promise<Task | undefined>;
+  createTask(task: InsertTask): Promise<Task>;
+  updateTask(id: number, data: Partial<Task>): Promise<Task | undefined>;
+  deleteTask(id: number): Promise<boolean>;
+  
   // Initialize with sample data
   initializeSampleData(): Promise<void>;
   
@@ -92,6 +114,9 @@ if (!globalData.__spouseyAppStorage) {
     sessionMessages: new Map<number, SessionMessage>(),
     activities: new Map<number, Activity>(),
     notifications: new Map<number, Notification>(),
+    calendarIntegrations: new Map<number, CalendarIntegration>(),
+    calendarEvents: new Map<number, CalendarEvent>(),
+    tasks: new Map<number, Task>(),
     userIdCounter: 1,
     messageIdCounter: 1,
     topicIdCounter: 1,
@@ -100,6 +125,9 @@ if (!globalData.__spouseyAppStorage) {
     notificationIdCounter: 1,
     sessionIdCounter: 1,
     sessionMessageIdCounter: 1,
+    calendarIntegrationIdCounter: 1,
+    calendarEventIdCounter: 1,
+    taskIdCounter: 1,
     sessionStore: new MemoryStore({ 
       checkPeriod: 86400000 // prune expired entries every 24h
     })
@@ -115,6 +143,9 @@ export class MemStorage implements IStorage {
   private sessionMessages: Map<number, SessionMessage>;
   private activities: Map<number, Activity>;
   private notifications: Map<number, Notification>;
+  private calendarIntegrations: Map<number, CalendarIntegration>;
+  private calendarEvents: Map<number, CalendarEvent>;
+  private tasks: Map<number, Task>;
   private userIdCounter: number;
   private messageIdCounter: number;
   private topicIdCounter: number;
@@ -123,6 +154,9 @@ export class MemStorage implements IStorage {
   private notificationIdCounter: number;
   private sessionIdCounter: number;
   private sessionMessageIdCounter: number;
+  private calendarIntegrationIdCounter: number;
+  private calendarEventIdCounter: number;
+  private taskIdCounter: number;
   sessionStore: session.Store;
   
   // Debug method to expose users map for debugging
@@ -141,6 +175,9 @@ export class MemStorage implements IStorage {
     this.sessionMessages = data.sessionMessages;
     this.activities = data.activities;
     this.notifications = data.notifications;
+    this.calendarIntegrations = data.calendarIntegrations;
+    this.calendarEvents = data.calendarEvents;
+    this.tasks = data.tasks;
     this.userIdCounter = data.userIdCounter;
     this.messageIdCounter = data.messageIdCounter;
     this.topicIdCounter = data.topicIdCounter;
@@ -149,6 +186,9 @@ export class MemStorage implements IStorage {
     this.notificationIdCounter = data.notificationIdCounter;
     this.sessionIdCounter = data.sessionIdCounter;
     this.sessionMessageIdCounter = data.sessionMessageIdCounter;
+    this.calendarIntegrationIdCounter = data.calendarIntegrationIdCounter;
+    this.calendarEventIdCounter = data.calendarEventIdCounter;
+    this.taskIdCounter = data.taskIdCounter;
     this.sessionStore = data.sessionStore;
   }
 
@@ -548,6 +588,410 @@ export class MemStorage implements IStorage {
     return Array.from(this.notifications.values())
       .filter(notification => notification.userId === userId && !notification.read && !notification.dismissed)
       .length;
+  }
+
+  // Calendar Integration methods
+  async getUserCalendarIntegrations(userId: number): Promise<CalendarIntegration[]> {
+    return Array.from(this.calendarIntegrations.values())
+      .filter(integration => integration.userId === userId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async getCalendarIntegration(id: number): Promise<CalendarIntegration | undefined> {
+    return this.calendarIntegrations.get(id);
+  }
+
+  async createCalendarIntegration(integration: InsertCalendarIntegration): Promise<CalendarIntegration> {
+    const id = this.calendarIntegrationIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.calendarIntegrationIdCounter = this.calendarIntegrationIdCounter;
+    
+    const now = new Date();
+    const calendarIntegration: CalendarIntegration = {
+      ...integration,
+      id,
+      isActive: true,
+      lastSynced: now,
+      createdAt: now
+    };
+    
+    this.calendarIntegrations.set(id, calendarIntegration);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.calendarIntegrations.set(id, calendarIntegration);
+    
+    // Create activity for user
+    await this.createActivity({
+      userId: integration.userId,
+      type: 'calendar',
+      description: `Added a new calendar: ${integration.name}`
+    });
+    
+    return calendarIntegration;
+  }
+
+  async updateCalendarIntegration(id: number, data: Partial<CalendarIntegration>): Promise<CalendarIntegration | undefined> {
+    const integration = await this.getCalendarIntegration(id);
+    if (!integration) return undefined;
+    
+    const updatedIntegration = { ...integration, ...data };
+    this.calendarIntegrations.set(id, updatedIntegration);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.calendarIntegrations.set(id, updatedIntegration);
+    
+    return updatedIntegration;
+  }
+
+  async deleteCalendarIntegration(id: number): Promise<boolean> {
+    const integration = await this.getCalendarIntegration(id);
+    if (!integration) return false;
+    
+    // Delete the integration
+    this.calendarIntegrations.delete(id);
+    globalData.__spouseyAppStorage.calendarIntegrations.delete(id);
+    
+    // Delete all events associated with this calendar
+    const events = Array.from(this.calendarEvents.values())
+      .filter(event => event.calendarId === id);
+    
+    for (const event of events) {
+      this.calendarEvents.delete(event.id);
+      globalData.__spouseyAppStorage.calendarEvents.delete(event.id);
+      
+      // Delete any tasks associated with these events
+      const tasks = Array.from(this.tasks.values())
+        .filter(task => task.eventId === event.id);
+      
+      for (const task of tasks) {
+        this.tasks.delete(task.id);
+        globalData.__spouseyAppStorage.tasks.delete(task.id);
+      }
+    }
+    
+    return true;
+  }
+
+  // Calendar Event methods
+  async getUserCalendarEvents(userId: number, startDate?: Date, endDate?: Date): Promise<CalendarEvent[]> {
+    let events = Array.from(this.calendarEvents.values())
+      .filter(event => {
+        // Events created by the user
+        const isCreator = event.creatorId === userId;
+        
+        // Events from calendars owned by the user
+        const isOwnerCalendar = Array.from(this.calendarIntegrations.values())
+          .some(cal => cal.id === event.calendarId && cal.userId === userId);
+        
+        return isCreator || isOwnerCalendar;
+      });
+    
+    // Filter by date range if provided
+    if (startDate) {
+      events = events.filter(event => {
+        const eventStart = new Date(event.startTime);
+        return eventStart >= startDate;
+      });
+    }
+    
+    if (endDate) {
+      events = events.filter(event => {
+        const eventStart = new Date(event.startTime);
+        return eventStart <= endDate;
+      });
+    }
+    
+    // Sort by start time
+    return events.sort((a, b) => {
+      const dateA = new Date(a.startTime).getTime();
+      const dateB = new Date(b.startTime).getTime();
+      return dateA - dateB;
+    });
+  }
+
+  async getPartnerCalendarEvents(userId: number, partnerId: number, startDate?: Date, endDate?: Date): Promise<CalendarEvent[]> {
+    // Get all of partner's events
+    let partnerEvents = Array.from(this.calendarEvents.values())
+      .filter(event => {
+        // Events created by the partner
+        const isCreator = event.creatorId === partnerId;
+        
+        // Events from calendars owned by the partner that have visibility = "partner" or "public"
+        const isVisibleCalendar = Array.from(this.calendarIntegrations.values())
+          .some(cal => cal.id === event.calendarId && 
+            cal.userId === partnerId && 
+            (cal.visibility === "partner" || cal.visibility === "public"));
+        
+        // Or individual events with visibility = "partner" or "public"
+        const isVisibleEvent = event.visibility === "partner" || event.visibility === "public";
+        
+        return isCreator && (isVisibleCalendar || isVisibleEvent);
+      });
+    
+    // Filter by date range if provided
+    if (startDate) {
+      partnerEvents = partnerEvents.filter(event => {
+        const eventStart = new Date(event.startTime);
+        return eventStart >= startDate;
+      });
+    }
+    
+    if (endDate) {
+      partnerEvents = partnerEvents.filter(event => {
+        const eventStart = new Date(event.startTime);
+        return eventStart <= endDate;
+      });
+    }
+    
+    // Sort by start time
+    return partnerEvents.sort((a, b) => {
+      const dateA = new Date(a.startTime).getTime();
+      const dateB = new Date(b.startTime).getTime();
+      return dateA - dateB;
+    });
+  }
+
+  async getCalendarEvent(id: number): Promise<CalendarEvent | undefined> {
+    return this.calendarEvents.get(id);
+  }
+
+  async createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
+    const id = this.calendarEventIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.calendarEventIdCounter = this.calendarEventIdCounter;
+    
+    const now = new Date();
+    const calendarEvent: CalendarEvent = {
+      ...event,
+      id,
+      createdAt: now,
+      updatedAt: now,
+      isTask: event.isTask || false,
+      allDay: event.allDay || false,
+      recurrence: event.recurrence || null,
+      location: event.location || null,
+      description: event.description || null,
+      externalId: event.externalId || null,
+      calendarId: event.calendarId || null // Allow for events not tied to a specific calendar
+    };
+    
+    this.calendarEvents.set(id, calendarEvent);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.calendarEvents.set(id, calendarEvent);
+    
+    // Create activity for event creation
+    await this.createActivity({
+      userId: event.creatorId,
+      type: 'calendar',
+      description: `Created new event: ${event.title}`
+    });
+    
+    return calendarEvent;
+  }
+
+  async updateCalendarEvent(id: number, data: Partial<CalendarEvent>): Promise<CalendarEvent | undefined> {
+    const event = await this.getCalendarEvent(id);
+    if (!event) return undefined;
+    
+    const updatedEvent = { 
+      ...event, 
+      ...data,
+      updatedAt: new Date() // Always update the updatedAt timestamp
+    };
+    
+    this.calendarEvents.set(id, updatedEvent);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.calendarEvents.set(id, updatedEvent);
+    
+    return updatedEvent;
+  }
+
+  async deleteCalendarEvent(id: number): Promise<boolean> {
+    const event = await this.getCalendarEvent(id);
+    if (!event) return false;
+    
+    // Delete the event
+    this.calendarEvents.delete(id);
+    globalData.__spouseyAppStorage.calendarEvents.delete(id);
+    
+    // Delete any tasks associated with this event
+    const tasks = Array.from(this.tasks.values())
+      .filter(task => task.eventId === id);
+    
+    for (const task of tasks) {
+      this.tasks.delete(task.id);
+      globalData.__spouseyAppStorage.tasks.delete(task.id);
+    }
+    
+    return true;
+  }
+
+  // Task methods
+  async getUserTasks(userId: number, status?: TaskStatus): Promise<Task[]> {
+    let tasks = Array.from(this.tasks.values())
+      .filter(task => {
+        // Tasks assigned by the user
+        const isAssigner = task.assignerId === userId;
+        
+        // Tasks assigned to the user
+        const isAssignee = task.assigneeId === userId;
+        
+        return isAssigner || isAssignee;
+      });
+    
+    // Filter by status if provided
+    if (status) {
+      tasks = tasks.filter(task => task.status === status);
+    }
+    
+    // Sort by due date, closest first
+    return tasks.sort((a, b) => {
+      const dateA = new Date(a.dueDate).getTime();
+      const dateB = new Date(b.dueDate).getTime();
+      return dateA - dateB;
+    });
+  }
+
+  async getTask(id: number): Promise<Task | undefined> {
+    return this.tasks.get(id);
+  }
+
+  async createTask(task: InsertTask): Promise<Task> {
+    const id = this.taskIdCounter++;
+    // Update global counter
+    globalData.__spouseyAppStorage.taskIdCounter = this.taskIdCounter;
+    
+    const now = new Date();
+    const newTask: Task = {
+      ...task,
+      id,
+      status: task.status || "pending",
+      priority: task.priority || 0,
+      notes: task.notes || null,
+      completedAt: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.tasks.set(id, newTask);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.tasks.set(id, newTask);
+    
+    // Get event details
+    const event = await this.getCalendarEvent(task.eventId);
+    
+    // Create a notification for the assignee
+    if (task.assigneeId) {
+      const assigner = await this.getUser(task.assignerId);
+      const assignerName = assigner ? 
+        (assigner.nickname || `${assigner.firstName || ''} ${assigner.lastName || ''}`.trim() || assigner.username) : 
+        'Your partner';
+      
+      await this.createNotification({
+        userId: task.assigneeId,
+        type: 'calendar',
+        title: 'New Task Assignment',
+        content: `${assignerName} has assigned you a task: ${event?.title || 'Task'}`,
+        relatedId: id
+      });
+      
+      // Create activity for task assignment
+      await this.createActivity({
+        userId: task.assignerId,
+        type: 'calendar',
+        description: `Assigned task "${event?.title || 'Task'}" to partner`
+      });
+    }
+    
+    return newTask;
+  }
+
+  async updateTask(id: number, data: Partial<Task>): Promise<Task | undefined> {
+    const task = await this.getTask(id);
+    if (!task) return undefined;
+    
+    const now = new Date();
+    const statusChanged = data.status && data.status !== task.status;
+    
+    // Set completedAt timestamp if task is being marked as completed
+    let completedAt = task.completedAt;
+    if (statusChanged && data.status === 'completed' && !task.completedAt) {
+      completedAt = now;
+    } else if (statusChanged && data.status !== 'completed') {
+      completedAt = null;
+    }
+    
+    const updatedTask = { 
+      ...task, 
+      ...data,
+      completedAt,
+      updatedAt: now
+    };
+    
+    this.tasks.set(id, updatedTask);
+    
+    // Explicitly update the global map
+    globalData.__spouseyAppStorage.tasks.set(id, updatedTask);
+    
+    // Create notifications and activities for status changes
+    if (statusChanged) {
+      const event = await this.getCalendarEvent(task.eventId);
+      const eventTitle = event?.title || 'Task';
+      
+      // Notify the assigner when the assignee changes the status
+      if (updatedTask.assignerId !== updatedTask.assigneeId) {
+        const assignee = await this.getUser(updatedTask.assigneeId);
+        const assigneeName = assignee ? 
+          (assignee.nickname || `${assignee.firstName || ''} ${assignee.lastName || ''}`.trim() || assignee.username) : 
+          'Your partner';
+        
+        let statusMessage = '';
+        switch (data.status) {
+          case 'accepted':
+            statusMessage = `accepted your task: ${eventTitle}`;
+            break;
+          case 'declined':
+            statusMessage = `declined your task: ${eventTitle}`;
+            break;
+          case 'completed':
+            statusMessage = `completed your task: ${eventTitle}`;
+            break;
+          default:
+            statusMessage = `updated the status of your task: ${eventTitle}`;
+        }
+        
+        await this.createNotification({
+          userId: updatedTask.assignerId,
+          type: 'calendar',
+          title: 'Task Status Updated',
+          content: `${assigneeName} has ${statusMessage}`,
+          relatedId: id
+        });
+        
+        // Create activity for task status change
+        await this.createActivity({
+          userId: updatedTask.assigneeId,
+          type: 'calendar',
+          description: `${data.status === 'accepted' ? 'Accepted' : data.status === 'declined' ? 'Declined' : 'Updated'} task "${eventTitle}"`
+        });
+      }
+    }
+    
+    return updatedTask;
+  }
+
+  async deleteTask(id: number): Promise<boolean> {
+    const task = await this.getTask(id);
+    if (!task) return false;
+    
+    // Delete the task
+    this.tasks.delete(id);
+    globalData.__spouseyAppStorage.tasks.delete(id);
+    
+    return true;
   }
 
   // Initialize with sample data

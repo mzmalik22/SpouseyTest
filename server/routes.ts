@@ -1085,6 +1085,580 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to create test user" });
     }
   });
+
+  // Calendar Integration Routes
+  app.get("/api/calendar/integrations", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    try {
+      const integrations = await storage.getUserCalendarIntegrations(currentUser.id);
+      return res.json(integrations);
+    } catch (error) {
+      console.error("Error fetching calendar integrations:", error);
+      return res.status(500).json({ message: "Failed to fetch calendar integrations" });
+    }
+  });
+
+  app.post("/api/calendar/integrations", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    const { name, type, provider, visibility, color } = req.body;
+    
+    try {
+      // Validate required fields
+      if (!name || !type || !provider || !visibility || !color) {
+        return res.status(400).json({ message: "Missing required calendar fields" });
+      }
+      
+      const newIntegration = await storage.createCalendarIntegration({
+        userId: currentUser.id,
+        name,
+        type,
+        provider,
+        visibility,
+        color,
+        credentials: req.body.credentials || null,
+        isActive: true
+      });
+      
+      return res.status(201).json(newIntegration);
+    } catch (error) {
+      console.error("Error creating calendar integration:", error);
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/calendar/integrations/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const integrationId = parseInt(req.params.id);
+    if (isNaN(integrationId)) {
+      return res.status(400).json({ message: "Invalid integration ID" });
+    }
+    
+    try {
+      const integration = await storage.getCalendarIntegration(integrationId);
+      if (!integration) {
+        return res.status(404).json({ message: "Calendar integration not found" });
+      }
+      
+      // Check if the user owns this integration
+      const currentUser = req.user as any;
+      if (integration.userId !== currentUser.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      return res.json(integration);
+    } catch (error) {
+      console.error("Error fetching calendar integration:", error);
+      return res.status(500).json({ message: "Failed to fetch calendar integration" });
+    }
+  });
+
+  app.patch("/api/calendar/integrations/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const integrationId = parseInt(req.params.id);
+    if (isNaN(integrationId)) {
+      return res.status(400).json({ message: "Invalid integration ID" });
+    }
+    
+    const currentUser = req.user as any;
+    
+    try {
+      // Check if the integration exists and belongs to the user
+      const integration = await storage.getCalendarIntegration(integrationId);
+      if (!integration) {
+        return res.status(404).json({ message: "Calendar integration not found" });
+      }
+      
+      if (integration.userId !== currentUser.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Update the integration
+      const updatedIntegration = await storage.updateCalendarIntegration(integrationId, req.body);
+      if (!updatedIntegration) {
+        return res.status(404).json({ message: "Failed to update calendar integration" });
+      }
+      
+      return res.json(updatedIntegration);
+    } catch (error) {
+      console.error("Error updating calendar integration:", error);
+      return res.status(500).json({ message: "Failed to update calendar integration" });
+    }
+  });
+
+  app.delete("/api/calendar/integrations/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const integrationId = parseInt(req.params.id);
+    if (isNaN(integrationId)) {
+      return res.status(400).json({ message: "Invalid integration ID" });
+    }
+    
+    const currentUser = req.user as any;
+    
+    try {
+      // Check if the integration exists and belongs to the user
+      const integration = await storage.getCalendarIntegration(integrationId);
+      if (!integration) {
+        return res.status(404).json({ message: "Calendar integration not found" });
+      }
+      
+      if (integration.userId !== currentUser.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Delete the integration
+      const success = await storage.deleteCalendarIntegration(integrationId);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete calendar integration" });
+      }
+      
+      return res.status(200).json({ message: "Calendar integration deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting calendar integration:", error);
+      return res.status(500).json({ message: "Failed to delete calendar integration" });
+    }
+  });
+
+  // Calendar Events Routes
+  app.get("/api/calendar/events", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    try {
+      // Parse date range from query parameters
+      let startDate = undefined;
+      let endDate = undefined;
+      
+      if (req.query.startDate) {
+        startDate = new Date(req.query.startDate as string);
+        if (isNaN(startDate.getTime())) {
+          return res.status(400).json({ message: "Invalid start date format" });
+        }
+      }
+      
+      if (req.query.endDate) {
+        endDate = new Date(req.query.endDate as string);
+        if (isNaN(endDate.getTime())) {
+          return res.status(400).json({ message: "Invalid end date format" });
+        }
+      }
+      
+      const events = await storage.getUserCalendarEvents(currentUser.id, startDate, endDate);
+      return res.json(events);
+    } catch (error) {
+      console.error("Error fetching calendar events:", error);
+      return res.status(500).json({ message: "Failed to fetch calendar events" });
+    }
+  });
+
+  app.get("/api/calendar/partner-events", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    if (!currentUser.partnerId) {
+      return res.status(400).json({ message: "No partner connected" });
+    }
+    
+    try {
+      // Parse date range from query parameters
+      let startDate = undefined;
+      let endDate = undefined;
+      
+      if (req.query.startDate) {
+        startDate = new Date(req.query.startDate as string);
+        if (isNaN(startDate.getTime())) {
+          return res.status(400).json({ message: "Invalid start date format" });
+        }
+      }
+      
+      if (req.query.endDate) {
+        endDate = new Date(req.query.endDate as string);
+        if (isNaN(endDate.getTime())) {
+          return res.status(400).json({ message: "Invalid end date format" });
+        }
+      }
+      
+      const events = await storage.getPartnerCalendarEvents(
+        currentUser.id, 
+        currentUser.partnerId, 
+        startDate, 
+        endDate
+      );
+      return res.json(events);
+    } catch (error) {
+      console.error("Error fetching partner calendar events:", error);
+      return res.status(500).json({ message: "Failed to fetch partner calendar events" });
+    }
+  });
+
+  app.post("/api/calendar/events", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    const { 
+      title, startTime, endTime, description, location, 
+      visibility, calendarId, allDay, isTask 
+    } = req.body;
+    
+    try {
+      // Validate required fields
+      if (!title || !startTime || !endTime) {
+        return res.status(400).json({ 
+          message: "Title, start time, and end time are required" 
+        });
+      }
+      
+      // Create the event
+      const newEvent = await storage.createCalendarEvent({
+        calendarId: calendarId || null,
+        creatorId: currentUser.id,
+        title,
+        description: description || null,
+        location: location || null,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        allDay: allDay || false,
+        recurrence: null,
+        visibility: visibility || 'partner',
+        externalId: null,
+        isTask: isTask || false
+      });
+      
+      // Create activity for the new event
+      await storage.createActivity({
+        userId: currentUser.id,
+        type: "calendar",
+        description: `Added a new event: ${title}`
+      });
+      
+      // If partner exists and event is shared, create notification
+      if (currentUser.partnerId && visibility !== 'private') {
+        await storage.createNotification({
+          userId: currentUser.partnerId,
+          type: "calendar",
+          title: "New Calendar Event",
+          content: `${currentUser.nickname || currentUser.firstName || currentUser.username} added: ${title}`,
+          relatedId: newEvent.id
+        });
+      }
+      
+      return res.status(201).json(newEvent);
+    } catch (error) {
+      console.error("Error creating calendar event:", error);
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/calendar/events/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const eventId = parseInt(req.params.id);
+    if (isNaN(eventId)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
+    
+    const currentUser = req.user as any;
+    
+    try {
+      const event = await storage.getCalendarEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Calendar event not found" });
+      }
+      
+      // Check if user has access to this event
+      if (event.creatorId !== currentUser.id) {
+        // If event is not created by current user, check if it's visible to partner
+        if (!currentUser.partnerId || event.creatorId !== currentUser.partnerId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+        
+        // If event is created by partner but is private, deny access
+        if (event.visibility === 'private') {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+      
+      return res.json(event);
+    } catch (error) {
+      console.error("Error fetching calendar event:", error);
+      return res.status(500).json({ message: "Failed to fetch calendar event" });
+    }
+  });
+
+  app.patch("/api/calendar/events/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const eventId = parseInt(req.params.id);
+    if (isNaN(eventId)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
+    
+    const currentUser = req.user as any;
+    
+    try {
+      // Check if the event exists and user has access
+      const event = await storage.getCalendarEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Calendar event not found" });
+      }
+      
+      if (event.creatorId !== currentUser.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Update the event
+      const updatedEvent = await storage.updateCalendarEvent(eventId, req.body);
+      if (!updatedEvent) {
+        return res.status(404).json({ message: "Failed to update calendar event" });
+      }
+      
+      return res.json(updatedEvent);
+    } catch (error) {
+      console.error("Error updating calendar event:", error);
+      return res.status(500).json({ message: "Failed to update calendar event" });
+    }
+  });
+
+  app.delete("/api/calendar/events/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const eventId = parseInt(req.params.id);
+    if (isNaN(eventId)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
+    
+    const currentUser = req.user as any;
+    
+    try {
+      // Check if the event exists and user has access
+      const event = await storage.getCalendarEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Calendar event not found" });
+      }
+      
+      if (event.creatorId !== currentUser.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Delete the event
+      const success = await storage.deleteCalendarEvent(eventId);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete calendar event" });
+      }
+      
+      return res.status(200).json({ message: "Calendar event deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting calendar event:", error);
+      return res.status(500).json({ message: "Failed to delete calendar event" });
+    }
+  });
+
+  // Tasks Routes
+  app.get("/api/calendar/tasks", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    try {
+      const status = req.query.status as string || undefined;
+      const tasks = await storage.getUserTasks(currentUser.id, status as any);
+      return res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      return res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.get("/api/calendar/tasks/event/:eventId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const eventId = parseInt(req.params.eventId);
+    if (isNaN(eventId)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
+    
+    const currentUser = req.user as any;
+    
+    try {
+      // Get all tasks for the user
+      const tasks = await storage.getUserTasks(currentUser.id);
+      
+      // Find the task associated with this event
+      const task = tasks.find(t => t.eventId === eventId);
+      if (!task) {
+        return res.status(404).json({ message: "No task found for this event" });
+      }
+      
+      return res.json(task);
+    } catch (error) {
+      console.error("Error fetching task for event:", error);
+      return res.status(500).json({ message: "Failed to fetch task" });
+    }
+  });
+
+  app.post("/api/calendar/tasks", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const currentUser = req.user as any;
+    const { eventId, assigneeId, dueDate, priority, notes } = req.body;
+    
+    if (!eventId || !dueDate) {
+      return res.status(400).json({ message: "Event ID and due date are required" });
+    }
+    
+    try {
+      // Verify the event exists and belongs to the user
+      const event = await storage.getCalendarEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      if (event.creatorId !== currentUser.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Create the task
+      const newTask = await storage.createTask({
+        eventId,
+        assignerId: currentUser.id,
+        assigneeId: assigneeId || null,
+        status: 'pending',
+        priority: priority || 0,
+        dueDate: new Date(dueDate),
+        notes: notes || null
+      });
+      
+      // If assigned to partner, create notification
+      if (assigneeId && assigneeId !== currentUser.id) {
+        await storage.createNotification({
+          userId: assigneeId,
+          type: "calendar",
+          title: "New Task Assigned",
+          content: `${currentUser.nickname || currentUser.firstName || currentUser.username} assigned you a task: ${event.title}`,
+          relatedId: newTask.id
+        });
+      }
+      
+      return res.status(201).json(newTask);
+    } catch (error) {
+      console.error("Error creating task:", error);
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/calendar/tasks/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const taskId = parseInt(req.params.id);
+    if (isNaN(taskId)) {
+      return res.status(400).json({ message: "Invalid task ID" });
+    }
+    
+    const currentUser = req.user as any;
+    
+    try {
+      // Get the task
+      const task = await storage.getTask(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Check permissions - user must be either the assigner or assignee
+      if (task.assignerId !== currentUser.id && task.assigneeId !== currentUser.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // If user is the assignee, they can only update status
+      if (task.assigneeId === currentUser.id && task.assignerId !== currentUser.id) {
+        if (Object.keys(req.body).some(key => key !== 'status')) {
+          return res.status(403).json({ 
+            message: "Assignee can only update task status" 
+          });
+        }
+      }
+      
+      // Special handling for completing a task
+      let updateData: Partial<any> = { ...req.body };
+      if (req.body.status === 'completed' && task.status !== 'completed') {
+        updateData.completedAt = new Date();
+      }
+      
+      // Update the task
+      const updatedTask = await storage.updateTask(taskId, updateData);
+      if (!updatedTask) {
+        return res.status(404).json({ message: "Failed to update task" });
+      }
+      
+      // Create notification for status changes if the user is not the assigner
+      if (req.body.status && task.assignerId !== currentUser.id) {
+        let statusMessage = "";
+        switch(req.body.status) {
+          case 'accepted':
+            statusMessage = "accepted";
+            break;
+          case 'declined':
+            statusMessage = "declined";
+            break;
+          case 'completed':
+            statusMessage = "completed";
+            break;
+          default:
+            break;
+        }
+        
+        if (statusMessage) {
+          const event = await storage.getCalendarEvent(task.eventId);
+          await storage.createNotification({
+            userId: task.assignerId,
+            type: "calendar",
+            title: "Task Update",
+            content: `${currentUser.nickname || currentUser.firstName || currentUser.username} has ${statusMessage} the task: ${event?.title || 'Unknown event'}`,
+            relatedId: taskId
+          });
+        }
+      }
+      
+      return res.json(updatedTask);
+    } catch (error) {
+      console.error("Error updating task:", error);
+      return res.status(500).json({ message: "Failed to update task" });
+    }
+  });
   
   const httpServer = createServer(app);
   return httpServer;

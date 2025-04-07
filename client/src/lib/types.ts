@@ -51,13 +51,56 @@ export interface Activity {
 export interface Notification {
   id: number;
   userId: number;
-  type: 'message' | 'activity' | 'coaching' | 'partner' | 'system';
+  type: 'message' | 'activity' | 'coaching' | 'partner' | 'system' | 'calendar';
   title: string;
   content: string;
   timestamp: Date;
   read: boolean;
   dismissed: boolean;
   relatedId?: number;
+}
+
+export interface CalendarEvent {
+  id: number;
+  calendarId: number | null;
+  creatorId: number;
+  title: string;
+  description: string | null;
+  location: string | null;
+  startTime: string;
+  endTime: string;
+  allDay: boolean;
+  recurrence: string | null;
+  visibility: 'private' | 'partner' | 'public';
+  externalId: string | null;
+  isTask: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CalendarIntegration {
+  id: number;
+  userId: number;
+  name: string;
+  type: 'personal' | 'work' | 'family' | 'shared';
+  provider: string;
+  visibility: 'private' | 'partner' | 'public';
+  color: string;
+  isActive: boolean;
+}
+
+export interface Task {
+  id: number;
+  eventId: number;
+  assignerId: number;
+  assigneeId: number | null;
+  status: 'pending' | 'accepted' | 'declined' | 'completed';
+  priority: number;
+  dueDate: string;
+  notes: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type VibeOption = {
