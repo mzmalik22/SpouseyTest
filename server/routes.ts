@@ -179,9 +179,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.get("/api/users/check-invite/:code", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
+    // Allow non-authenticated users to check invite codes
+    // This way new users can see who invited them before they register
     
     const { code } = req.params;
     if (!code) {
@@ -193,9 +192,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ message: "Invalid invite code" });
     }
     
-    const currentUser = req.user as any;
-    if (partnerUser.id === currentUser.id) {
-      return res.status(400).json({ message: "You cannot connect with yourself" });
+    // If user is authenticated, perform additional checks
+    if (req.isAuthenticated()) {
+      const currentUser = req.user as any;
+      if (partnerUser.id === currentUser.id) {
+        return res.status(400).json({ message: "You cannot connect with yourself" });
+      }
+      
+      if (currentUser.partnerId) {
+        return res.status(400).json({ message: "You already have a partner connected" });
+      }
     }
     
     // Return basic info about the invitation

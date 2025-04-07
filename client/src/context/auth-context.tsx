@@ -6,8 +6,8 @@ import { User } from "@/lib/types";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: any) => Promise<void>;
+  login: (email: string, password: string, inviteCode?: string) => Promise<void>;
+  register: (userData: any, inviteCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, inviteCode?: string) => {
     try {
       setLoading(true);
       const response = await apiRequest("POST", "/api/auth/login", { email, password });
@@ -59,6 +59,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "Login Successful",
         description: `Welcome back, ${userData.firstName || userData.username || userData.email}!`,
       });
+      
+      // Handle invite code if present
+      if (inviteCode && userData.id) {
+        try {
+          const acceptResponse = await apiRequest("POST", "/api/users/accept-invite", { 
+            inviteCode 
+          });
+          
+          if (acceptResponse.ok) {
+            toast({
+              title: "Partner Connected",
+              description: "You've been successfully connected with your partner!",
+            });
+            
+            // Refresh user data to get the updated partner connection
+            await refreshUser();
+          }
+        } catch (acceptError) {
+          console.error("Error accepting invitation after login:", acceptError);
+          // Don't throw since login was successful
+        }
+      }
     } catch (error) {
       console.error("Login failed:", error);
       toast({
@@ -72,10 +94,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (userData: any) => {
+  const register = async (userData: any, inviteCode?: string) => {
     try {
       setLoading(true);
-      const response = await apiRequest("POST", "/api/auth/register", userData);
+      
+      // Include invite code in the registration data if provided
+      const registerData = inviteCode ? { ...userData, inviteCode } : userData;
+      
+      const response = await apiRequest("POST", "/api/auth/register", registerData);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -86,8 +112,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(newUser);
       toast({
         title: "Registration Successful",
-        description: `Welcome to Spousey.ai, ${newUser.firstName || newUser.email}!`,
+        description: `Welcome to Spousey, ${newUser.firstName || newUser.email}!`,
       });
+      
+      // If there was an invite code, we attempt to accept it automatically
+      if (inviteCode && newUser.id) {
+        try {
+          const acceptResponse = await apiRequest("POST", "/api/users/accept-invite", { 
+            inviteCode 
+          });
+          
+          if (acceptResponse.ok) {
+            toast({
+              title: "Partner Connected",
+              description: "You've been successfully connected with your partner!",
+            });
+            
+            // Refresh user data to get the updated partner connection
+            await refreshUser();
+          }
+        } catch (acceptError) {
+          console.error("Error accepting invitation after registration:", acceptError);
+          // We don't throw here since registration was successful
+        }
+      }
     } catch (error) {
       toast({
         variant: "destructive",

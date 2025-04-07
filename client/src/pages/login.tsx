@@ -1,8 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,18 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function Login() {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [location] = useLocation();
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  
+  // Extract invite code from URL if present
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.split('?')[1]);
+    const code = searchParams.get('inviteCode');
+    if (code) {
+      setInviteCode(code);
+      console.log("Found invite code in URL:", code);
+    }
+  }, [location]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -31,7 +43,7 @@ export default function Login() {
   const onSubmit = async (values: LoginFormValues) => {
     try {
       setIsLoading(true);
-      await login(values.email, values.password);
+      await login(values.email, values.password, inviteCode || undefined);
     } catch (error) {
       console.error("Login failed:", error);
     } finally {

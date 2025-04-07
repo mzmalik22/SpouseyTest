@@ -26,18 +26,17 @@ export default function InvitePage() {
 
   useEffect(() => {
     const checkInviteCode = async () => {
-      if (!user) return;
-      
       try {
         setLoading(true);
         
-        // Check if user is already connected with a partner
-        if (user.partnerId) {
+        // If user is logged in, check if they already have a partner
+        if (user && user.partnerId) {
           setError("You are already connected with a partner. You cannot accept another invitation.");
           return;
         }
         
-        // Just check if the invite code exists, but don't accept it yet
+        // Check if the invite code exists, but don't accept it yet
+        // This endpoint now works for both authenticated and non-authenticated users
         const response = await apiRequest("GET", `/api/users/check-invite/${inviteCode}`);
         
         if (!response.ok) {
@@ -101,10 +100,10 @@ export default function InvitePage() {
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col gap-3">
-            <Button onClick={() => setLocation(`/login?redirect=/invite/${inviteCode}`)} className="w-full" variant="default">
+            <Button onClick={() => setLocation(`/login?inviteCode=${inviteCode}`)} className="w-full" variant="default">
               Log In
             </Button>
-            <Button onClick={() => setLocation(`/register?redirect=/invite/${inviteCode}`)} className="w-full" variant="outline">
+            <Button onClick={() => setLocation(`/register?inviteCode=${inviteCode}`)} className="w-full" variant="outline">
               Create Account
             </Button>
           </CardFooter>
