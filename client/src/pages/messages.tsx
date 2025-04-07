@@ -187,8 +187,6 @@ export default function Messages() {
 
   return (
     <div className="h-full min-h-screen flex flex-col bg-black">
-      <Navbar />
-      
       <div className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20">
         <div className="flex items-center mb-6">
           <Link href="/">

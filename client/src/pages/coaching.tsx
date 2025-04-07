@@ -421,7 +421,6 @@ export default function Coaching() {
   if (isLoadingSessions) {
     return (
       <div className="h-full min-h-screen flex flex-col bg-black">
-        <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
         </div>
@@ -449,8 +448,6 @@ export default function Coaching() {
 
   return (
     <div className="h-full min-h-screen flex flex-col bg-black text-white">
-      <Navbar />
-      
       <div className="flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Mobile session selector */}
         <div className="md:hidden flex items-center justify-between mb-4">

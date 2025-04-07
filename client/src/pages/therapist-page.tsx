@@ -115,8 +115,6 @@ export default function TherapistPage() {
 
   return (
     <div className="h-full min-h-screen flex flex-col bg-black">
-      <Navbar />
-      
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="bg-muted rounded-2xl border border-border p-6 mb-6">
