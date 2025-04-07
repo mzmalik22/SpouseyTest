@@ -1,6 +1,10 @@
 {
   "appId": "com.spousey.app",
-  "appName": "Spousey",
+  "appName": "Spouseyv1",
   "webDir": "dist",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "ios": {
+    "scheme": "App",
+    "contentInset": "always"
+  }
 }
