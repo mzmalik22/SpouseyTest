@@ -83,13 +83,27 @@ export function RelationshipRadar() {
             Relationship Radar
           </CardTitle>
           <CardDescription>
-            Not enough data yet
+            Insights will appear automatically
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Continue using the app to get personalized relationship insights.
+          <p className="text-sm text-muted-foreground mb-4">
+            As you use the app, we'll analyze your interactions and provide personalized relationship insights here.
           </p>
+          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center">
+              <MessageSquare className="w-4 h-4 mr-2 text-emotion-peaceful" />
+              <span>Based on your communication patterns</span>
+            </div>
+            <div className="flex items-center">
+              <Calendar className="w-4 h-4 mr-2 text-emotion-happy" />
+              <span>Insights from your calendar events</span>
+            </div>
+            <div className="flex items-center">
+              <Heart className="w-4 h-4 mr-2 text-emotion-passionate" />
+              <span>Reflections on your relationship status</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
