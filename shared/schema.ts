@@ -10,6 +10,7 @@ export const sessionCategoryValues = ['relationship', 'communication', 'conflict
 export const calendarVisibilityValues = ['private', 'partner', 'public'] as const;
 export const taskStatusValues = ['pending', 'accepted', 'declined', 'completed'] as const;
 export const calendarTypeValues = ['personal', 'work', 'family', 'shared'] as const;
+export const birthSexValues = ['male', 'female', 'other'] as const;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -18,6 +19,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   firstName: text("first_name"),
   lastName: text("last_name"),
+  birthSex: text("birth_sex", { enum: birthSexValues }),  // Will be one of birthSexValues
   partnerId: integer("partner_id").references(() => users.id),
   inviteCode: text("invite_code").unique(),
   maritalStatus: text("marital_status"),  // Will be one of maritalStatusValues
@@ -164,6 +166,7 @@ export type SessionCategory = typeof sessionCategoryValues[number];
 export type CalendarVisibility = typeof calendarVisibilityValues[number];
 export type TaskStatus = typeof taskStatusValues[number];
 export type CalendarType = typeof calendarTypeValues[number];
+export type BirthSex = typeof birthSexValues[number];
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;

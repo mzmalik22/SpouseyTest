@@ -6,8 +6,11 @@ import { Link, useLocation } from "wouter";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/auth-context";
 import spouseyLogo from "@/assets/spousey-logo-transparent.png";
+import { birthSexValues } from "@shared/schema";
 
 const registerSchema = z.object({
   username: z.string().min(3, { message: "Username must be at least 3 characters" }),
@@ -15,6 +18,9 @@ const registerSchema = z.object({
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
+  birthSex: z.enum(birthSexValues, {
+    required_error: "Please select your birth sex",
+  }),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -43,6 +49,7 @@ export default function Register() {
       password: "",
       firstName: "",
       lastName: "",
+      birthSex: undefined,
     },
   });
 
@@ -166,6 +173,34 @@ export default function Register() {
                         className="w-full p-4 bg-muted border border-border text-white rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
                         disabled={isLoading}
                       />
+                    </FormControl>
+                    <FormMessage className="text-emotion-angry" />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="birthSex"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-white">Birth Sex</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-1"
+                        disabled={isLoading}
+                      >
+                        {birthSexValues.map((sex) => (
+                          <div key={sex} className="flex items-center space-x-2 p-2 border border-border rounded-md hover:bg-muted/50 transition-colors">
+                            <RadioGroupItem value={sex} id={sex} />
+                            <Label htmlFor={sex} className="cursor-pointer capitalize text-white">
+                              {sex}
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
                     </FormControl>
                     <FormMessage className="text-emotion-angry" />
                   </FormItem>
