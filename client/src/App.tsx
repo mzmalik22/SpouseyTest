@@ -8,6 +8,7 @@ import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import Messages from "@/pages/messages";
 import Coaching from "@/pages/coaching";
+import TherapistPage from "@/pages/therapist-page";
 import Onboarding from "@/pages/onboarding";
 import Invite from "@/pages/invite";
 import { useAuth, AuthProvider } from "./context/auth-context";
@@ -19,6 +20,7 @@ import { isNativePlatform } from "./lib/capacitor";
 // Layout component to handle different layouts for mobile vs desktop
 function AppLayout({ children, isAuthPage = false }: { children: React.ReactNode, isAuthPage?: boolean }) {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
 
   // Simplified layout for auth pages
   if (isAuthPage) {
@@ -53,6 +55,12 @@ function AppLayout({ children, isAuthPage = false }: { children: React.ReactNode
               <span className="h-6 w-6 text-white">🧠</span>
               <span className="text-xs text-muted-foreground">Coaching</span>
             </Link>
+            {user?.seesTherapist && (
+              <Link href="/therapist" className="flex flex-col items-center p-2">
+                <span className="h-6 w-6 text-white">👨‍⚕️</span>
+                <span className="text-xs text-muted-foreground">Therapist</span>
+              </Link>
+            )}
           </div>
         </nav>
       )}
@@ -119,6 +127,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/messages" component={Messages} />
         <Route path="/coaching" component={Coaching} />
+        <Route path="/therapist" component={TherapistPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
