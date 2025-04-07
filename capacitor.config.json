@@ -1,0 +1,6 @@
+{
+  "appId": "com.spousey.app",
+  "appName": "Spousey",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

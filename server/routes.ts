@@ -26,7 +26,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       secret: process.env.SESSION_SECRET || "spousey-app-secret",
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 },
+      cookie: { 
+        secure: false, // Set to false for development to work with HTTP
+        maxAge: 24 * 60 * 60 * 1000,
+        sameSite: 'lax'
+      },
       store: storage.sessionStore,
     })
   );
