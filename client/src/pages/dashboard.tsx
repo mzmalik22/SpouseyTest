@@ -190,28 +190,45 @@ export default function Dashboard() {
                 </p>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id="therapist-mode" 
-                  checked={user?.seesTherapist || false}
-                  onCheckedChange={handleTherapistToggle}
-                  disabled={therapistStatusMutation.isPending}
-                />
-                <Label htmlFor="therapist-mode" className="text-white">
-                  {user?.seesTherapist ? "I see a therapist" : "I don't see a therapist"}
-                </Label>
-                {therapistStatusMutation.isPending && (
-                  <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-emotion-happy ml-2"></div>
-                )}
+              <div className="flex items-center">
+                <div className="bg-black/40 p-3 rounded-xl flex items-center space-x-3 border border-border">
+                  <div className="relative flex items-center">
+                    <Switch 
+                      id="therapist-mode" 
+                      checked={user?.seesTherapist || false}
+                      onCheckedChange={handleTherapistToggle}
+                      disabled={therapistStatusMutation.isPending}
+                      className="data-[state=checked]:bg-emotion-happy data-[state=unchecked]:bg-muted h-6 w-11"
+                    />
+                    {therapistStatusMutation.isPending && (
+                      <div className="absolute -right-6 animate-spin h-4 w-4 border-t-2 border-b-2 border-emotion-happy"></div>
+                    )}
+                  </div>
+                  <Label 
+                    htmlFor="therapist-mode" 
+                    className="text-white font-medium cursor-pointer select-none"
+                  >
+                    {user?.seesTherapist ? "I see a therapist" : "I don't see a therapist"}
+                  </Label>
+                </div>
               </div>
             </div>
             
             {user?.seesTherapist && (
-              <div className="mt-4 p-4 bg-black/30 rounded-lg border border-emotion-happy/20">
-                <p className="text-sm text-emotion-happy">
-                  <User className="h-4 w-4 inline-block mr-1" />
-                  The therapist module is coming soon! You'll be able to track progress, share insights, and coordinate between Spousey and your therapist.
-                </p>
+              <div className="mt-4 p-4 bg-black/40 rounded-lg border border-emotion-happy/30">
+                <div className="flex items-start">
+                  <div className="bg-emotion-happy/10 p-2 rounded-full mr-3">
+                    <User className="h-5 w-5 text-emotion-happy" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-emotion-happy mb-1">
+                      Therapist Module Coming Soon
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      You'll be able to track progress, share insights with your therapist, and integrate your relationship coaching sessions with professional guidance.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>

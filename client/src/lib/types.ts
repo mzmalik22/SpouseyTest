@@ -11,6 +11,7 @@ export interface User {
   onboardingCompleted?: boolean;
   nickname?: string;
   partnerNickname?: string;
+  seesTherapist?: boolean;
 }
 
 export interface Message {
