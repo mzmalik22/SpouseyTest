@@ -1,21 +1,26 @@
 import OpenAI from "openai";
 
 // Check for OpenAI API key
-if (!process.env.OPENAI_API_KEY) {
-  console.warn("OPENAI_API_KEY environment variable is not set. Message refinement will not work.");
-}
+// TODO: uncomment
+// if (!process.env.OPENAI_API_KEY) {
+//   console.warn("OPENAI_API_KEY environment variable is not set. Message refinement will not work.");
+// }
 
 // Initialize OpenAI client with runtime check for API key
 function createOpenAIClient() {
+  // TODO: uncomment
   // Check if API key is available
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn("OPENAI_API_KEY environment variable is not set. Message refinement will fallback to original messages.");
-    return null;
-  }
-  
+  // if (!process.env.OPENAI_API_KEY) {
+  //   console.warn("OPENAI_API_KEY environment variable is not set. Message refinement will fallback to original messages.");
+  //   return null;
+  // }
+
   try {
     return new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      // TODO: uncomment
+      // apiKey: process.env.OPENAI_API_KEY,
+      apiKey:
+        "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",
     });
   } catch (error) {
     console.error("Failed to initialize OpenAI client:", error);
@@ -27,19 +32,26 @@ const openai = createOpenAIClient();
 
 // Map of vibe types to prompt instructions
 const vibePrompts: Record<string, string> = {
-  affectionate: "Rephrase this message to express deep love, warmth, and tenderness. Make it sound genuinely loving while maintaining the original intent.",
-  
-  concerned: "Rephrase this message to show genuine worry and care. Express thoughtful concern for your partner's wellbeing while maintaining the original intent.",
-  
-  apologetic: "Rephrase this message to express sincere regret and a desire to make amends. Show genuine remorse while maintaining the original intent.",
-  
-  playful: "Rephrase this message to be more light-hearted and fun. Add a touch of humor or playfulness while maintaining the original intent.",
-  
-  excited: "Rephrase this message to express enthusiasm and positive energy. Show genuine excitement while maintaining the original intent.",
-  
-  flirty: "Rephrase this message to be subtly romantic and suggestive. Add a touch of loving intimacy while maintaining the original intent.",
-  
-  funny: "Rephrase this message to be humorous and amusing. Add a witty joke or lighthearted humor while maintaining the original intent."
+  affectionate:
+    "Rephrase this message to express deep love, warmth, and tenderness. Make it sound genuinely loving while maintaining the original intent.",
+
+  concerned:
+    "Rephrase this message to show genuine worry and care. Express thoughtful concern for your partner's wellbeing while maintaining the original intent.",
+
+  apologetic:
+    "Rephrase this message to express sincere regret and a desire to make amends. Show genuine remorse while maintaining the original intent.",
+
+  playful:
+    "Rephrase this message to be more light-hearted and fun. Add a touch of humor or playfulness while maintaining the original intent.",
+
+  excited:
+    "Rephrase this message to express enthusiasm and positive energy. Show genuine excitement while maintaining the original intent.",
+
+  flirty:
+    "Rephrase this message to be subtly romantic and suggestive. Add a touch of loving intimacy while maintaining the original intent.",
+
+  funny:
+    "Rephrase this message to be humorous and amusing. Add a witty joke or lighthearted humor while maintaining the original intent.",
 };
 
 /**
@@ -61,9 +73,9 @@ export interface RefinedMessagesResponse {
  * @returns The refined message text
  */
 export async function refineMessage(
-  message: string, 
-  vibe: string, 
-  userNickname?: string, 
+  message: string,
+  vibe: string,
+  userNickname?: string,
   partnerNickname?: string
 ): Promise<string> {
   // If no vibe selected, message is empty, or OpenAI client is not available, return the original
@@ -73,7 +85,7 @@ export async function refineMessage(
     }
     return message;
   }
-  
+
   try {
     // Create nickname context if available
     let nicknameContext = "";
@@ -85,9 +97,10 @@ export async function refineMessage(
       if (partnerNickname) {
         nicknameContext += `\n- The recipient goes by the nickname "${partnerNickname}".`;
       }
-      nicknameContext += "\nPlease incorporate these nicknames naturally if appropriate.";
+      nicknameContext +=
+        "\nPlease incorporate these nicknames naturally if appropriate.";
     }
-    
+
     // Create the prompt for the selected vibe
     const prompt = `
 As a relationship communication assistant, please help refine the following message between partners.
@@ -106,7 +119,7 @@ Do not include any explanation, just respond with the refined message text.
     if (!openai) {
       throw new Error("OpenAI client is not available");
     }
-    
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
@@ -117,7 +130,6 @@ Do not include any explanation, just respond with the refined message text.
     // Return the refined message or the original if there's an issue
     const refinedMessage = response.choices[0].message.content?.trim();
     return refinedMessage || message;
-    
   } catch (error) {
     console.error("Error refining message with OpenAI:", error);
     return message; // Return the original message if there's an error
@@ -140,25 +152,25 @@ export async function refineMessageAllVibes(
   if (!message || !openai) {
     if (!openai) {
       console.warn("Message refinement skipped: OpenAI client not available");
-      
+
       // Create fallback responses using the original message
-      const fallbackMessages: {[key: string]: string} = {};
-      Object.keys(vibePrompts).forEach(vibe => {
+      const fallbackMessages: { [key: string]: string } = {};
+      Object.keys(vibePrompts).forEach((vibe) => {
         fallbackMessages[vibe] = message || "";
       });
-      
-      return { 
+
+      return {
         refinedMessages: fallbackMessages,
-        error: "OpenAI client not available"
+        error: "OpenAI client not available",
       };
     }
-    
-    return { 
+
+    return {
       refinedMessages: {},
-      error: "Message is empty"
+      error: "Message is empty",
     };
   }
-  
+
   try {
     // Create nickname context if available
     let nicknameContext = "";
@@ -170,9 +182,10 @@ export async function refineMessageAllVibes(
       if (partnerNickname) {
         nicknameContext += `\n- The recipient goes by the nickname "${partnerNickname}".`;
       }
-      nicknameContext += "\nPlease incorporate these nicknames naturally if appropriate.";
+      nicknameContext +=
+        "\nPlease incorporate these nicknames naturally if appropriate.";
     }
-    
+
     // Create a prompt for all vibes at once
     const prompt = `
 As a relationship communication assistant, please help refine the following message between partners
@@ -211,13 +224,13 @@ The refined messages should:
     if (!openai) {
       throw new Error("OpenAI client is not available");
     }
-    
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
       max_tokens: 1000,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
     });
 
     // Parse the JSON response
@@ -225,22 +238,21 @@ The refined messages should:
     if (!content) {
       throw new Error("Empty response from OpenAI");
     }
-    
+
     const parsedContent = JSON.parse(content);
     return { refinedMessages: parsedContent };
-    
   } catch (error) {
     console.error("Error refining messages with OpenAI:", error);
-    
+
     // Create fallback responses using the original message
-    const fallbackMessages: {[key: string]: string} = {};
-    Object.keys(vibePrompts).forEach(vibe => {
+    const fallbackMessages: { [key: string]: string } = {};
+    Object.keys(vibePrompts).forEach((vibe) => {
       fallbackMessages[vibe] = message;
     });
-    
-    return { 
+
+    return {
       refinedMessages: fallbackMessages,
-      error: "Failed to generate refined messages"
+      error: "Failed to generate refined messages",
     };
   }
 }
